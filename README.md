@@ -1,36 +1,150 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# OpenPacman 🎮
 
-## Getting Started
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Next.js](https://img.shields.io/badge/Next.js-14.0-blue.svg)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
+[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.0-blue.svg)](https://tailwindcss.com/)
 
-First, run the development server:
+A modern, open-source implementation of the classic Pac-Man game built with Next.js, TypeScript, and TailwindCSS. Play it now at [openpacman.vercel.app](https://openpacman.vercel.app/)!
+
+![OpenPacman Screenshot](public/screenshot.png)
+
+## 🎮 Features
+
+- 🕹️ Classic Pac-Man gameplay mechanics
+- 🎵 Web Audio API sound effects
+- 📱 Responsive design with touch controls for mobile
+- 🏆 Local high score system
+- 🎨 Clean, modern UI with TailwindCSS
+- 👾 Multiple ghost behaviors and AI patterns
+- 🔄 Multiple levels with increasing difficulty
+- ⌨️ Keyboard and touch controls
+- 🎨 Smooth animations and transitions
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js 18.0 or later
+- npm or yarn
+- Git
+
+### Installation
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/brown2020/openpacman.git
+cd openpacman
+```
+
+2. Install dependencies:
+
+```bash
+npm install
+# or
+yarn install
+```
+
+3. Run the development server:
 
 ```bash
 npm run dev
 # or
 yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+4. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🎮 How to Play
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Use arrow keys to move Pac-Man
+- Eat all dots to complete the level
+- Avoid ghosts
+- Touch controls available on mobile devices
+- Collect power pellets to turn the tables on ghosts
+- Complete all levels to win!
 
-## Learn More
+## 🛠️ Tech Stack
 
-To learn more about Next.js, take a look at the following resources:
+- [Next.js 14](https://nextjs.org/) - React Framework
+- [TypeScript](https://www.typescriptlang.org/) - Type Safety
+- [TailwindCSS](https://tailwindcss.com/) - Styling
+- [Web Audio API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API) - Sound Effects
+- [Vercel](https://vercel.com/) - Deployment
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🏗️ Project Structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+openpacman/
+├── src/
+│   ├── components/     # React components
+│   │   ├── GameBoard.tsx
+│   │   ├── Ghost.tsx
+│   │   ├── Pacman.tsx
+│   │   ├── PacmanGame.tsx
+│   │   └── StartScreen.tsx
+│   ├── constants/     # Game constants
+│   ├── levels/        # Level definitions
+│   ├── types/         # TypeScript types
+│   └── utils/         # Utility functions
+├── public/           # Static assets
+└── styles/          # Global styles
+```
 
-## Deploy on Vercel
+## 🎮 Game Mechanics
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Ghost Behavior
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Ghosts use different AI patterns to chase Pac-Man
+- Each ghost has unique movement characteristics
+- Ghost speed increases with each level
+
+### Scoring System
+
+- Dots: 10 points
+- Power Pellets: 50 points
+- Ghosts: 200 points
+- Bonus points for completing levels
+
+## 🔜 Roadmap
+
+- [ ] Add power pellets
+- [ ] Implement fruit bonuses
+- [ ] Add ghost vulnerability states
+- [ ] Create more levels
+- [ ] Add sound effects for all actions
+- [ ] Implement global high score system
+- [ ] Add customizable mazes
+- [ ] Create level editor
+
+## 👥 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 📬 Contact
+
+Stephen Brown - [info@ignitechannel.com](mailto:info@ignitechannel.com)
+
+Website: [https://ignite.me](https://ignite.me)
+
+Project Link: [https://github.com/brown2020/openpacman](https://github.com/brown2020/openpacman)
+
+Live Demo: [https://openpacman.vercel.app/](https://openpacman.vercel.app/)
+
+## 🙏 Acknowledgments
+
+- Original Pac-Man game by Namco
+- [Next.js Documentation](https://nextjs.org/docs)
+- [TailwindCSS Documentation](https://tailwindcss.com/docs)
+- Inspired by the classic arcade gaming era
