@@ -67,7 +67,7 @@ yarn dev
 
 ## 🛠️ Tech Stack
 
-- [Next.js 14](https://nextjs.org/) - React Framework
+- [Next.js 15](https://nextjs.org/) - React Framework
 - [TypeScript](https://www.typescriptlang.org/) - Type Safety
 - [TailwindCSS](https://tailwindcss.com/) - Styling
 - [Web Audio API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API) - Sound Effects
