@@ -98,7 +98,7 @@ export const StartScreen: React.FC<StartScreenProps> = ({
         onClick={onStart}
         className="mb-8 px-8 py-4 text-2xl bg-blue-600 hover:bg-blue-700 rounded-full
                    transition-all duration-200 transform hover:scale-105
-                   focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50"
+                   focus:outline-hidden focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50"
       >
         {gameOver || gameWon ? "Play Again" : "Start Game"}
       </button>
