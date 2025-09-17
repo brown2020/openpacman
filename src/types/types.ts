@@ -110,13 +110,6 @@ export interface GhostPattern {
   duration: number;
 }
 
-export interface GameScore {
-  score: number;
-  level: number;
-  timestamp: number;
-  playerName?: string;
-}
-
 export interface GameSettings {
   soundEnabled: boolean;
   musicEnabled: boolean;

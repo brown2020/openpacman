@@ -1,54 +1,39 @@
 // components/PacmanGame.tsx
-import React, { useEffect, useState, useCallback, useRef } from "react";
+"use client";
+import React, { useEffect, useCallback, useRef } from "react";
 import { GameBoard } from "./GameBoard";
 import { StartScreen } from "./StartScreen";
-import {
-  Position,
-  Direction,
-  Ghost,
-  GameState,
-  GameScore,
-} from "../types/types";
+import { GameScore } from "../types/types";
 import { LEVELS } from "../levels/gameLevels";
 import {
   GHOST_MOVEMENT_INTERVAL,
   MOUTH_ANIMATION_INTERVAL,
-  INITIAL_POSITION,
   STORAGE_KEYS,
 } from "../constants/gameConstants";
-import {
-  isValidMove,
-  getInitialDots,
-  getInitialGhosts,
-} from "../utils/gameUtils";
+import { isValidMove } from "../utils/gameUtils";
 import { SoundManager } from "../utils/soundManager";
-
-// Initial game state
-const initialGameState: GameState = {
-  isPlaying: false,
-  gameOver: false,
-  gameWon: false,
-  level: 0,
-  score: 0,
-  highScore: 0,
-  lives: 3,
-  paused: false,
-  gameStateType: "READY",
-  powerPelletActive: false,
-  dotsEaten: 0,
-  totalDots: getInitialDots(LEVELS[0].layout).length,
-  ghostsEaten: 0,
-};
+import { useGameStore } from "../stores/game-store";
 
 export const PacmanGame: React.FC = () => {
-  // Game State
-  const [gameState, setGameState] = useState<GameState>(initialGameState);
-  const [pacmanPos, setPacmanPos] = useState<Position>(INITIAL_POSITION);
-  const [direction, setDirection] = useState<Direction>("right");
-  const [dots, setDots] = useState<Position[]>([]);
-  const [ghosts, setGhosts] = useState<Ghost[]>([]);
-  const [mouthOpen, setMouthOpen] = useState(true);
-  const [highScores, setHighScores] = useState<GameScore[]>([]);
+  const gameState = useGameStore((s) => s.gameState);
+  const pacmanPos = useGameStore((s) => s.pacmanPos);
+  const direction = useGameStore((s) => s.direction);
+  const dots = useGameStore((s) => s.dots);
+  const ghosts = useGameStore((s) => s.ghosts);
+  const mouthOpen = useGameStore((s) => s.mouthOpen);
+  const highScores = useGameStore((s) => s.highScores);
+  const startGame = useGameStore((s) => s.startGame);
+  const setPacmanPos = useGameStore((s) => s.setPacmanPos);
+  const setDirection = useGameStore((s) => s.setDirection);
+  const setGhosts = useGameStore((s) => s.setGhosts);
+  const setDots = useGameStore((s) => s.setDots);
+  const toggleMouth = useGameStore((s) => s.toggleMouth);
+  const setHighScores = useGameStore((s) => s.setHighScores);
+  const updateGameState = useGameStore((s) => s.updateGameState);
+  const resetEntitiesAfterDeath = useGameStore(
+    (s) => s.resetEntitiesAfterDeath
+  );
+  const incrementScoreForDot = useGameStore((s) => s.incrementScoreForDot);
 
   // Refs
   const soundManagerRef = useRef<SoundManager | null>(null);
@@ -65,7 +50,7 @@ export const PacmanGame: React.FC = () => {
         setHighScores([]);
       }
     }
-  }, []);
+  }, [setHighScores]);
 
   // Initialize sound manager
   useEffect(() => {
@@ -88,19 +73,19 @@ export const PacmanGame: React.FC = () => {
   }, []);
 
   // Save high score
-  const saveHighScore = useCallback((score: number, level: number) => {
-    const timestamp = Date.now();
-    const newScore: GameScore = {
-      score,
-      level,
-      date: timestamp,
-      timestamp,
-      completion: ((level + 1) / LEVELS.length) * 100,
-      ghostsEaten: 0,
-    };
+  const saveHighScore = useCallback(
+    (score: number, level: number) => {
+      const timestamp = Date.now();
+      const newScore: GameScore = {
+        score,
+        level,
+        date: timestamp,
+        timestamp,
+        completion: ((level + 1) / LEVELS.length) * 100,
+        ghostsEaten: 0,
+      };
 
-    setHighScores((prevScores) => {
-      const newHighScores = [...prevScores, newScore]
+      const newHighScores = [...highScores, newScore]
         .sort((a, b) => b.score - a.score)
         .slice(0, 5);
 
@@ -108,52 +93,55 @@ export const PacmanGame: React.FC = () => {
         STORAGE_KEYS.HIGH_SCORES,
         JSON.stringify(newHighScores)
       );
-      return newHighScores;
-    });
-  }, []);
+      setHighScores(newHighScores);
+    },
+    [highScores, setHighScores]
+  );
 
   // Ghost movement logic
   const updateGhosts = useCallback(() => {
     if (!gameState.isPlaying || gameState.gameOver || gameState.gameWon) return;
 
-    setGhosts((currentGhosts) =>
-      currentGhosts.map((ghost) => {
-        const dx = pacmanPos.x - ghost.position.x;
-        const dy = pacmanPos.y - ghost.position.y;
+    const currentGhosts = useGameStore.getState().ghosts;
+    const newGhosts = currentGhosts.map((ghost) => {
+      const dx = pacmanPos.x - ghost.position.x;
+      const dy = pacmanPos.y - ghost.position.y;
 
-        const newPos = { ...ghost.position };
+      const newPos = { ...ghost.position };
 
-        if (Math.random() < 0.8) {
-          if (Math.abs(dx) > Math.abs(dy)) {
-            newPos.x += Math.sign(dx);
-          } else {
-            newPos.y += Math.sign(dy);
-          }
+      if (Math.random() < 0.8) {
+        if (Math.abs(dx) > Math.abs(dy)) {
+          newPos.x += Math.sign(dx);
         } else {
-          const directions = [
-            { x: 1, y: 0 },
-            { x: -1, y: 0 },
-            { x: 0, y: 1 },
-            { x: 0, y: -1 },
-          ];
-          const randomDir =
-            directions[Math.floor(Math.random() * directions.length)];
-          newPos.x += randomDir.x;
-          newPos.y += randomDir.y;
+          newPos.y += Math.sign(dy);
         }
+      } else {
+        const directions = [
+          { x: 1, y: 0 },
+          { x: -1, y: 0 },
+          { x: 0, y: 1 },
+          { x: 0, y: -1 },
+        ];
+        const randomDir =
+          directions[Math.floor(Math.random() * directions.length)];
+        newPos.x += randomDir.x;
+        newPos.y += randomDir.y;
+      }
 
-        if (isValidMove(newPos, LEVELS[gameState.level].layout)) {
-          return { ...ghost, position: newPos };
-        }
-        return ghost;
-      })
-    );
+      if (isValidMove(newPos, LEVELS[gameState.level].layout)) {
+        return { ...ghost, position: newPos };
+      }
+      return ghost;
+    });
+
+    setGhosts(newGhosts);
   }, [
     gameState.isPlaying,
     gameState.gameOver,
     gameState.gameWon,
     gameState.level,
     pacmanPos,
+    setGhosts,
   ]);
 
   // Ghost movement interval
@@ -180,30 +168,15 @@ export const PacmanGame: React.FC = () => {
     updateGhosts,
   ]);
 
-  // Start game
-  const startGame = useCallback(
+  // Start game wrapper to clear ghost interval then delegate to store
+  const startGameWrapped = useCallback(
     (level: number = 0) => {
       if (ghostMoveIntervalRef.current) {
         clearInterval(ghostMoveIntervalRef.current);
       }
-
-      const newGameState = {
-        ...initialGameState,
-        isPlaying: true,
-        level,
-        score: level === 0 ? 0 : gameState.score,
-        highScore: gameState.highScore,
-        totalDots: getInitialDots(LEVELS[level].layout).length,
-      };
-
-      setGameState(newGameState);
-      setPacmanPos(INITIAL_POSITION);
-      setDirection("right");
-      setDots(getInitialDots(LEVELS[level].layout));
-      setGhosts(getInitialGhosts());
-      setMouthOpen(true);
+      startGame(level);
     },
-    [gameState.score, gameState.highScore]
+    [startGame]
   );
 
   // Mouth animation
@@ -212,14 +185,14 @@ export const PacmanGame: React.FC = () => {
 
     if (gameState.isPlaying && !gameState.gameOver && !gameState.gameWon) {
       intervalId = setInterval(() => {
-        setMouthOpen((prev) => !prev);
+        toggleMouth();
       }, MOUTH_ANIMATION_INTERVAL);
     }
 
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [gameState.isPlaying, gameState.gameOver, gameState.gameWon]);
+  }, [gameState.isPlaying, gameState.gameOver, gameState.gameWon, toggleMouth]);
 
   // Collision detection and game events
   useEffect(() => {
@@ -236,7 +209,7 @@ export const PacmanGame: React.FC = () => {
 
       const newLives = gameState.lives - 1;
       if (newLives <= 0) {
-        setGameState((prev) => ({
+        updateGameState((prev) => ({
           ...prev,
           gameOver: true,
           isPlaying: false,
@@ -245,12 +218,11 @@ export const PacmanGame: React.FC = () => {
         }));
         saveHighScore(gameState.score, gameState.level);
       } else {
-        setGameState((prev) => ({
+        updateGameState((prev) => ({
           ...prev,
           lives: newLives,
         }));
-        setPacmanPos(INITIAL_POSITION);
-        setGhosts(getInitialGhosts());
+        resetEntitiesAfterDeath();
       }
       return;
     }
@@ -262,29 +234,24 @@ export const PacmanGame: React.FC = () => {
 
     if (remainingDots.length < dots.length) {
       playSoundEffect("dot");
-      setGameState((prev) => ({
-        ...prev,
-        score: prev.score + 10,
-        dotsEaten: prev.dotsEaten + 1,
-        highScore: Math.max(prev.highScore, prev.score + 10),
-      }));
+      incrementScoreForDot();
       setDots(remainingDots);
 
       if (remainingDots.length === 0) {
         if (gameState.level === LEVELS.length - 1) {
-          setGameState((prev) => ({
+          updateGameState((prev) => ({
             ...prev,
             gameWon: true,
             isPlaying: false,
             gameStateType: "GAME_WON",
           }));
         } else {
-          setGameState((prev) => ({
+          updateGameState((prev) => ({
             ...prev,
             gameWon: true,
             gameStateType: "LEVEL_COMPLETE",
           }));
-          setTimeout(() => startGame(gameState.level + 1), 2000);
+          setTimeout(() => startGameWrapped(gameState.level + 1), 2000);
         }
       }
     }
@@ -295,7 +262,11 @@ export const PacmanGame: React.FC = () => {
     gameState,
     playSoundEffect,
     saveHighScore,
-    startGame,
+    startGameWrapped,
+    updateGameState,
+    resetEntitiesAfterDeath,
+    incrementScoreForDot,
+    setDots,
   ]);
 
   // Handle keyboard input
@@ -337,6 +308,8 @@ export const PacmanGame: React.FC = () => {
       gameState.gameOver,
       gameState.gameWon,
       gameState.level,
+      setDirection,
+      setPacmanPos,
     ]
   );
 
@@ -390,7 +363,7 @@ export const PacmanGame: React.FC = () => {
   if (!gameState.isPlaying) {
     return (
       <StartScreen
-        onStart={() => startGame(0)}
+        onStart={() => startGameWrapped(0)}
         score={gameState.score}
         highScores={highScores}
         gameOver={gameState.gameOver}

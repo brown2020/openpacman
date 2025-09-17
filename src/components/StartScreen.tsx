@@ -1,11 +1,6 @@
 // components/StartScreen.tsx
 import React from "react";
-
-interface GameScore {
-  score: number;
-  level: number;
-  timestamp: number;
-}
+import type { GameScore } from "../types/types";
 
 interface StartScreenProps {
   onStart: () => void;
