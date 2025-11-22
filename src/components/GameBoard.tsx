@@ -1,4 +1,3 @@
-// components/GameBoard.tsx
 import React from "react";
 import {
   Position,
@@ -6,10 +5,10 @@ import {
   Ghost as GhostType,
   MazeCell,
 } from "../types/types";
-import { CELL_SIZE, CELL_TYPES } from "../constants/gameConstants";
-
-import { Ghost } from "./Ghost";
-import { Pacman } from "./Pacman";
+import { CELL_SIZE } from "../constants/gameConstants";
+import { WallsLayer } from "./board/WallsLayer";
+import { DotsLayer } from "./board/DotsLayer";
+import { EntitiesLayer } from "./board/EntitiesLayer";
 
 interface GameBoardProps {
   level: MazeCell[][];
@@ -32,66 +31,18 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   gameOver,
   gameWon,
 }) => {
+  if (!level || level.length === 0) return null;
+
   // Calculate board dimensions
   const width = level[0].length * CELL_SIZE;
   const height = level.length * CELL_SIZE;
-
-  // Helper function to render walls
-  const renderWalls = () => {
-    return level.map((row, y) =>
-      row.map((cell, x) => {
-        if (cell === CELL_TYPES.WALL) {
-          return (
-            <div
-              key={`wall-${x}-${y}`}
-              className="absolute bg-blue-900 border border-blue-800"
-              style={{
-                width: CELL_SIZE,
-                height: CELL_SIZE,
-                left: x * CELL_SIZE,
-                top: y * CELL_SIZE,
-              }}
-            />
-          );
-        }
-        return null;
-      })
-    );
-  };
-
-  // Helper function to render dots
-  const renderDots = () => {
-    return dots.map((dot) => (
-      <div
-        key={`dot-${dot.x}-${dot.y}`}
-        className="absolute bg-yellow-200 rounded-full"
-        style={{
-          width: 6,
-          height: 6,
-          left: dot.x * CELL_SIZE + CELL_SIZE / 2 - 3,
-          top: dot.y * CELL_SIZE + CELL_SIZE / 2 - 3,
-        }}
-      />
-    ));
-  };
-
-  // Helper function to render ghosts
-  const renderGhosts = () => {
-    return ghosts.map((ghost, index) => (
-      <Ghost
-        key={`ghost-${index}`}
-        position={ghost.position}
-        color={ghost.color}
-      />
-    ));
-  };
 
   // Helper function to render overlay
   const renderOverlay = () => {
     if (!gameOver && !gameWon) return null;
 
     return (
-      <div className="absolute inset-0 flex flex-col items-center justify-center bg-black bg-opacity-50 z-50">
+      <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 z-50">
         <div className="text-4xl font-bold text-white mb-4">
           {gameOver ? "Game Over!" : "Level Complete!"}
         </div>
@@ -113,21 +64,15 @@ export const GameBoard: React.FC<GameBoardProps> = ({
           boxShadow: "0 0 20px rgba(0, 0, 0, 0.3)",
         }}
       >
-        {/* Game elements */}
-        {renderWalls()}
-        {renderDots()}
-        {renderGhosts()}
-
-        {/* Pacman */}
-        {!gameOver && (
-          <Pacman
-            position={pacmanPos}
-            direction={direction}
-            mouthOpen={mouthOpen}
-          />
-        )}
-
-        {/* Overlay for game over or level complete */}
+        <WallsLayer level={level} />
+        <DotsLayer dots={dots} />
+        <EntitiesLayer
+          ghosts={ghosts}
+          pacmanPos={pacmanPos}
+          direction={direction}
+          mouthOpen={mouthOpen}
+          gameOver={gameOver}
+        />
         {renderOverlay()}
       </div>
     </div>
