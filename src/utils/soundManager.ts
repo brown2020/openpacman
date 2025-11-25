@@ -1,7 +1,6 @@
 // utils/soundManager.ts
 import { SOUND } from "../constants/gameConstants";
 
-// Add type for browser audio context
 interface WebAudioAPI extends Window {
   webkitAudioContext: typeof AudioContext;
 }
@@ -35,7 +34,6 @@ export class SoundManager {
 
   private initializeAudioContext(): void {
     try {
-      // Check for different browser implementations with proper typing
       const AudioContextClass =
         window.AudioContext ||
         (window as unknown as WebAudioAPI).webkitAudioContext;
@@ -49,8 +47,6 @@ export class SoundManager {
     } catch (error) {
       if (error instanceof Error) {
         console.error("Error initializing Audio Context:", error.message);
-      } else {
-        console.error("Unknown error initializing Audio Context");
       }
     }
   }
@@ -61,6 +57,17 @@ export class SoundManager {
     this.musicGainNode = this.audioContext.createGain();
     this.musicGainNode.connect(this.audioContext.destination);
     this.setMasterVolume(this.masterVolume);
+  }
+
+  private ensureAudioContext(): boolean {
+    if (!this.audioContext) return false;
+    
+    // Resume audio context if suspended (required for user interaction)
+    if (this.audioContext.state === "suspended") {
+      this.audioContext.resume();
+    }
+    
+    return true;
   }
 
   public setMasterVolume(volume: number): void {
@@ -76,65 +83,6 @@ export class SoundManager {
       this.musicGainNode.gain.value = this.isMuted ? 0 : this.masterVolume;
     }
     return this.isMuted;
-  }
-
-  public playDotSound(): void {
-    if (!this.audioContext || this.isMuted) return;
-
-    const track = this.createTrack();
-
-    if (track.oscillator && track.gainNode) {
-      track.oscillator.frequency.setValueAtTime(
-        SOUND.EFFECTS.DOT_FREQUENCY,
-        this.audioContext.currentTime
-      );
-
-      track.gainNode.gain.setValueAtTime(
-        SOUND.VOLUME.EFFECTS * this.masterVolume,
-        this.audioContext.currentTime
-      );
-
-      track.oscillator.start();
-      track.oscillator.stop(
-        this.audioContext.currentTime + SOUND.EFFECTS.DOT_DURATION
-      );
-
-      track.oscillator.onended = () => {
-        this.cleanupTrack(track);
-      };
-    }
-  }
-
-  public playDeathSound(): void {
-    if (!this.audioContext || this.isMuted) return;
-
-    const track = this.createTrack();
-
-    if (track.oscillator && track.gainNode) {
-      track.oscillator.frequency.setValueAtTime(
-        SOUND.EFFECTS.DEATH_START_FREQUENCY,
-        this.audioContext.currentTime
-      );
-
-      track.gainNode.gain.setValueAtTime(
-        SOUND.VOLUME.EFFECTS * this.masterVolume,
-        this.audioContext.currentTime
-      );
-
-      track.oscillator.frequency.linearRampToValueAtTime(
-        SOUND.EFFECTS.DEATH_END_FREQUENCY,
-        this.audioContext.currentTime + SOUND.EFFECTS.DEATH_DURATION
-      );
-
-      track.oscillator.start();
-      track.oscillator.stop(
-        this.audioContext.currentTime + SOUND.EFFECTS.DEATH_DURATION
-      );
-
-      track.oscillator.onended = () => {
-        this.cleanupTrack(track);
-      };
-    }
   }
 
   private createTrack(): AudioTrack {
@@ -157,6 +105,225 @@ export class SoundManager {
     }
     if (track.gainNode) {
       track.gainNode.disconnect();
+    }
+  }
+
+  public playDotSound(): void {
+    if (!this.ensureAudioContext() || this.isMuted || !this.audioContext) return;
+
+    const track = this.createTrack();
+
+    if (track.oscillator && track.gainNode) {
+      track.oscillator.type = "sine";
+      track.oscillator.frequency.setValueAtTime(
+        SOUND.EFFECTS.DOT_FREQUENCY,
+        this.audioContext.currentTime
+      );
+
+      track.gainNode.gain.setValueAtTime(
+        SOUND.VOLUME.EFFECTS * this.masterVolume * 0.3,
+        this.audioContext.currentTime
+      );
+      track.gainNode.gain.exponentialRampToValueAtTime(
+        0.001,
+        this.audioContext.currentTime + SOUND.EFFECTS.DOT_DURATION
+      );
+
+      track.oscillator.start();
+      track.oscillator.stop(
+        this.audioContext.currentTime + SOUND.EFFECTS.DOT_DURATION
+      );
+
+      track.oscillator.onended = () => {
+        this.cleanupTrack(track);
+      };
+    }
+  }
+
+  public playDeathSound(): void {
+    if (!this.ensureAudioContext() || this.isMuted || !this.audioContext) return;
+
+    const track = this.createTrack();
+
+    if (track.oscillator && track.gainNode) {
+      track.oscillator.type = "sawtooth";
+      track.oscillator.frequency.setValueAtTime(
+        SOUND.EFFECTS.DEATH_START_FREQUENCY,
+        this.audioContext.currentTime
+      );
+
+      track.gainNode.gain.setValueAtTime(
+        SOUND.VOLUME.EFFECTS * this.masterVolume * 0.5,
+        this.audioContext.currentTime
+      );
+
+      track.oscillator.frequency.exponentialRampToValueAtTime(
+        SOUND.EFFECTS.DEATH_END_FREQUENCY,
+        this.audioContext.currentTime + SOUND.EFFECTS.DEATH_DURATION
+      );
+      track.gainNode.gain.exponentialRampToValueAtTime(
+        0.001,
+        this.audioContext.currentTime + SOUND.EFFECTS.DEATH_DURATION
+      );
+
+      track.oscillator.start();
+      track.oscillator.stop(
+        this.audioContext.currentTime + SOUND.EFFECTS.DEATH_DURATION
+      );
+
+      track.oscillator.onended = () => {
+        this.cleanupTrack(track);
+      };
+    }
+  }
+
+  public playPowerPelletSound(): void {
+    if (!this.ensureAudioContext() || this.isMuted || !this.audioContext) return;
+
+    // Create an ascending arpeggio effect
+    const frequencies = [262, 330, 392, 523]; // C, E, G, C
+    const noteDuration = 0.08;
+
+    frequencies.forEach((freq, i) => {
+      const track = this.createTrack();
+      if (track.oscillator && track.gainNode && this.audioContext) {
+        track.oscillator.type = "square";
+        track.oscillator.frequency.setValueAtTime(
+          freq,
+          this.audioContext.currentTime + i * noteDuration
+        );
+
+        track.gainNode.gain.setValueAtTime(
+          0,
+          this.audioContext.currentTime + i * noteDuration
+        );
+        track.gainNode.gain.linearRampToValueAtTime(
+          SOUND.VOLUME.EFFECTS * this.masterVolume * 0.4,
+          this.audioContext.currentTime + i * noteDuration + 0.01
+        );
+        track.gainNode.gain.exponentialRampToValueAtTime(
+          0.001,
+          this.audioContext.currentTime + (i + 1) * noteDuration
+        );
+
+        track.oscillator.start(this.audioContext.currentTime + i * noteDuration);
+        track.oscillator.stop(
+          this.audioContext.currentTime + (i + 1) * noteDuration + 0.05
+        );
+
+        track.oscillator.onended = () => {
+          this.cleanupTrack(track);
+        };
+      }
+    });
+  }
+
+  public playGhostEatSound(): void {
+    if (!this.ensureAudioContext() || this.isMuted || !this.audioContext) return;
+
+    const track = this.createTrack();
+
+    if (track.oscillator && track.gainNode) {
+      track.oscillator.type = "square";
+      track.oscillator.frequency.setValueAtTime(
+        100,
+        this.audioContext.currentTime
+      );
+      track.oscillator.frequency.exponentialRampToValueAtTime(
+        800,
+        this.audioContext.currentTime + 0.15
+      );
+
+      track.gainNode.gain.setValueAtTime(
+        SOUND.VOLUME.EFFECTS * this.masterVolume * 0.4,
+        this.audioContext.currentTime
+      );
+      track.gainNode.gain.exponentialRampToValueAtTime(
+        0.001,
+        this.audioContext.currentTime + 0.2
+      );
+
+      track.oscillator.start();
+      track.oscillator.stop(this.audioContext.currentTime + 0.2);
+
+      track.oscillator.onended = () => {
+        this.cleanupTrack(track);
+      };
+    }
+  }
+
+  public playLevelCompleteSound(): void {
+    if (!this.ensureAudioContext() || this.isMuted || !this.audioContext) return;
+
+    // Victory fanfare
+    const notes = [
+      { freq: 523, time: 0 },     // C5
+      { freq: 659, time: 0.15 },  // E5
+      { freq: 784, time: 0.3 },   // G5
+      { freq: 1047, time: 0.45 }, // C6
+    ];
+
+    notes.forEach(({ freq, time }) => {
+      const track = this.createTrack();
+      if (track.oscillator && track.gainNode && this.audioContext) {
+        track.oscillator.type = "triangle";
+        track.oscillator.frequency.setValueAtTime(
+          freq,
+          this.audioContext.currentTime + time
+        );
+
+        track.gainNode.gain.setValueAtTime(0, this.audioContext.currentTime + time);
+        track.gainNode.gain.linearRampToValueAtTime(
+          SOUND.VOLUME.EFFECTS * this.masterVolume * 0.5,
+          this.audioContext.currentTime + time + 0.02
+        );
+        track.gainNode.gain.exponentialRampToValueAtTime(
+          0.001,
+          this.audioContext.currentTime + time + 0.3
+        );
+
+        track.oscillator.start(this.audioContext.currentTime + time);
+        track.oscillator.stop(this.audioContext.currentTime + time + 0.35);
+
+        track.oscillator.onended = () => {
+          this.cleanupTrack(track);
+        };
+      }
+    });
+  }
+
+  public playGameOverSound(): void {
+    if (!this.ensureAudioContext() || this.isMuted || !this.audioContext) return;
+
+    // Descending sad tone
+    const track = this.createTrack();
+
+    if (track.oscillator && track.gainNode) {
+      track.oscillator.type = "triangle";
+      track.oscillator.frequency.setValueAtTime(
+        440,
+        this.audioContext.currentTime
+      );
+      track.oscillator.frequency.exponentialRampToValueAtTime(
+        110,
+        this.audioContext.currentTime + 1
+      );
+
+      track.gainNode.gain.setValueAtTime(
+        SOUND.VOLUME.EFFECTS * this.masterVolume * 0.4,
+        this.audioContext.currentTime
+      );
+      track.gainNode.gain.exponentialRampToValueAtTime(
+        0.001,
+        this.audioContext.currentTime + 1.2
+      );
+
+      track.oscillator.start();
+      track.oscillator.stop(this.audioContext.currentTime + 1.2);
+
+      track.oscillator.onended = () => {
+        this.cleanupTrack(track);
+      };
     }
   }
 

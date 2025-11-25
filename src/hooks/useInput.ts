@@ -1,101 +1,149 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef } from "react";
 import { useGameStore } from "../stores/game-store";
-import { isValidMove } from "../utils/gameUtils";
+import { isValidMove, getNextPosition } from "../utils/gameUtils";
 import { LEVELS } from "../levels/gameLevels";
+import { DIRECTIONS, TOUCH } from "../constants/gameConstants";
+import type { Direction } from "../types/types";
 
 export const useInput = () => {
-  const gameState = useGameStore((s) => s.gameState);
+  const isPlaying = useGameStore((s) => s.gameState.isPlaying);
+  const isPaused = useGameStore((s) => s.isPaused);
+  const gameOver = useGameStore((s) => s.gameState.gameOver);
+  const gameWon = useGameStore((s) => s.gameState.gameWon);
+  const level = useGameStore((s) => s.gameState.level);
   const pacmanPos = useGameStore((s) => s.pacmanPos);
+  const direction = useGameStore((s) => s.direction);
+
   const setDirection = useGameStore((s) => s.setDirection);
-  const setPacmanPos = useGameStore((s) => s.setPacmanPos);
+  const setNextDirection = useGameStore((s) => s.setNextDirection);
+  const togglePause = useGameStore((s) => s.togglePause);
 
-  const handleKeyPress = useCallback(
-    (e: KeyboardEvent) => {
-      if (!gameState.isPlaying || gameState.gameOver || gameState.gameWon) return;
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
-      let newPos = { ...pacmanPos };
-      let newDirection = null;
+  const trySetDirection = useCallback((newDir: Direction) => {
+    if (!isPlaying || gameOver || gameWon || isPaused) return;
 
-      switch (e.key) {
-        case "ArrowLeft":
-          newPos = { ...pacmanPos, x: pacmanPos.x - 1 };
-          newDirection = "left" as const;
-          break;
-        case "ArrowRight":
-          newPos = { ...pacmanPos, x: pacmanPos.x + 1 };
-          newDirection = "right" as const;
-          break;
-        case "ArrowUp":
-          newPos = { ...pacmanPos, y: pacmanPos.y - 1 };
-          newDirection = "up" as const;
-          break;
-        case "ArrowDown":
-          newPos = { ...pacmanPos, y: pacmanPos.y + 1 };
-          newDirection = "down" as const;
-          break;
-        default:
-          return;
+    const layout = LEVELS[level]?.layout || LEVELS[0].layout;
+    const nextPos = getNextPosition(pacmanPos, newDir);
+
+    // If the move is immediately valid, set it as current direction
+    if (isValidMove(nextPos, layout)) {
+      setDirection(newDir);
+    } else {
+      // Queue it as next direction to try
+      setNextDirection(newDir);
+    }
+  }, [isPlaying, isPaused, gameOver, gameWon, level, pacmanPos, setDirection, setNextDirection]);
+
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    // Handle pause with Escape or P
+    if (e.key === "Escape" || e.key === "p" || e.key === "P") {
+      if (isPlaying && !gameOver && !gameWon) {
+        e.preventDefault();
+        togglePause();
       }
+      return;
+    }
 
-      if (isValidMove(newPos, LEVELS[gameState.level].layout)) {
-        if (newDirection) setDirection(newDirection);
-        setPacmanPos(newPos);
-      }
-    },
-    [gameState, pacmanPos, setDirection, setPacmanPos]
-  );
+    if (!isPlaying || gameOver || gameWon || isPaused) return;
 
-  // Touch handling
-  const handleTouchStart = useCallback(
-    (e: React.TouchEvent) => {
-      if (!gameState.isPlaying || gameState.gameOver || gameState.gameWon) return;
+    let newDirection: Direction | null = null;
 
-      const touch = e.touches[0];
-      const touchStartX = touch.clientX;
-      const touchStartY = touch.clientY;
+    switch (e.key) {
+      case "ArrowLeft":
+      case "a":
+      case "A":
+        newDirection = DIRECTIONS.LEFT;
+        break;
+      case "ArrowRight":
+      case "d":
+      case "D":
+        newDirection = DIRECTIONS.RIGHT;
+        break;
+      case "ArrowUp":
+      case "w":
+      case "W":
+        newDirection = DIRECTIONS.UP;
+        break;
+      case "ArrowDown":
+      case "s":
+      case "S":
+        newDirection = DIRECTIONS.DOWN;
+        break;
+      default:
+        return;
+    }
 
-      const handleTouchMove = (evt: TouchEvent) => {
-        const moveTouch = evt.touches[0];
-        const deltaX = moveTouch.clientX - touchStartX;
-        const deltaY = moveTouch.clientY - touchStartY;
+    if (newDirection) {
+      e.preventDefault();
+      trySetDirection(newDirection);
+    }
+  }, [isPlaying, isPaused, gameOver, gameWon, togglePause, trySetDirection]);
 
-        // Threshold for swipe
-        if (Math.abs(deltaX) < 30 && Math.abs(deltaY) < 30) return;
+  // Swipe handling for mobile
+  const handleTouchStart = useCallback((e: React.TouchEvent | TouchEvent) => {
+    if (!isPlaying || gameOver || gameWon) return;
 
-        if (Math.abs(deltaX) > Math.abs(deltaY)) {
-          handleKeyPress(
-            new KeyboardEvent("keydown", {
-              key: deltaX > 0 ? "ArrowRight" : "ArrowLeft",
-            })
-          );
-        } else {
-          handleKeyPress(
-            new KeyboardEvent("keydown", {
-              key: deltaY > 0 ? "ArrowDown" : "ArrowUp",
-            })
-          );
-        }
-        // Remove listener after one valid swipe to prevent continuous movement from one swipe
-        document.removeEventListener("touchmove", handleTouchMove);
-      };
+    const touch = e.touches[0];
+    touchStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+    };
+  }, [isPlaying, gameOver, gameWon]);
 
-      document.addEventListener("touchmove", handleTouchMove);
-      document.addEventListener(
-        "touchend",
-        () => {
-          document.removeEventListener("touchmove", handleTouchMove);
-        },
-        { once: true }
-      );
-    },
-    [gameState.isPlaying, gameState.gameOver, gameState.gameWon, handleKeyPress]
-  );
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    if (!touchStartRef.current || isPaused) return;
 
+    const touch = e.touches[0];
+    const deltaX = touch.clientX - touchStartRef.current.x;
+    const deltaY = touch.clientY - touchStartRef.current.y;
+
+    // Check if swipe is long enough
+    if (Math.abs(deltaX) < TOUCH.MIN_SWIPE_DISTANCE && 
+        Math.abs(deltaY) < TOUCH.MIN_SWIPE_DISTANCE) {
+      return;
+    }
+
+    e.preventDefault();
+
+    // Determine swipe direction
+    if (Math.abs(deltaX) > Math.abs(deltaY)) {
+      trySetDirection(deltaX > 0 ? DIRECTIONS.RIGHT : DIRECTIONS.LEFT);
+    } else {
+      trySetDirection(deltaY > 0 ? DIRECTIONS.DOWN : DIRECTIONS.UP);
+    }
+
+    // Reset touch start to allow continuous swiping
+    touchStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+    };
+  }, [isPaused, trySetDirection]);
+
+  const handleTouchEnd = useCallback(() => {
+    touchStartRef.current = null;
+  }, []);
+
+  // Register keyboard listeners
   useEffect(() => {
-    window.addEventListener("keydown", handleKeyPress);
-    return () => window.removeEventListener("keydown", handleKeyPress);
-  }, [handleKeyPress]);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
 
-  return { handleTouchStart };
+  // Register touch listeners
+  useEffect(() => {
+    const options = { passive: false };
+    document.addEventListener("touchmove", handleTouchMove, options);
+    document.addEventListener("touchend", handleTouchEnd);
+
+    return () => {
+      document.removeEventListener("touchmove", handleTouchMove);
+      document.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, [handleTouchMove, handleTouchEnd]);
+
+  return { 
+    handleTouchStart,
+    handleTouchEnd,
+  };
 };
-

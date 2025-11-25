@@ -6,28 +6,38 @@ import { Pacman } from "../Pacman";
 interface EntitiesLayerProps {
   ghosts: GhostType[];
   pacmanPos: Position;
+  pacmanPrevPos?: Position;
   direction: Direction;
   mouthOpen: boolean;
   gameOver: boolean;
+  isPowerMode?: boolean;
 }
 
 export const EntitiesLayer: React.FC<EntitiesLayerProps> = memo(
-  ({ ghosts, pacmanPos, direction, mouthOpen, gameOver }) => {
+  ({ ghosts, pacmanPos, pacmanPrevPos, direction, mouthOpen, gameOver, isPowerMode }) => {
     return (
       <>
-        {ghosts.map((ghost, index) => (
+        {/* Render ghosts */}
+        {ghosts.map((ghost) => (
           <Ghost
-            key={`ghost-${index}`}
+            key={`ghost-${ghost.name}`}
             position={ghost.position}
             color={ghost.color}
+            mode={ghost.mode}
+            frightenedTimeLeft={ghost.frightenedTimeLeft}
+            direction={ghost.direction}
+            pacmanPos={pacmanPos}
           />
         ))}
         
+        {/* Render Pacman if game is not over */}
         {!gameOver && (
           <Pacman
             position={pacmanPos}
+            prevPosition={pacmanPrevPos}
             direction={direction}
             mouthOpen={mouthOpen}
+            isPowerMode={isPowerMode}
           />
         )}
       </>
@@ -36,4 +46,3 @@ export const EntitiesLayer: React.FC<EntitiesLayerProps> = memo(
 );
 
 EntitiesLayer.displayName = "EntitiesLayer";
-

@@ -44,10 +44,11 @@ export const GHOST_INITIAL_POSITIONS: Position[] = [
 export const GHOST_CHASE_PROBABILITY = 0.8; // 80% chance to chase Pacman
 export const GHOST_SCATTER_DURATION = 7000; // Duration of scatter mode
 export const GHOST_CHASE_DURATION = 20000; // Duration of chase mode
-export const GHOST_FRIGHTENED_DURATION = 6000; // Duration when power pellet is active
-export const GHOST_FRIGHTENED_FLASH_START = 4000; // When to start flashing
-export const GHOST_FRIGHTENED_COLOR = "#0000FF";
+export const GHOST_FRIGHTENED_DURATION = 8000; // Duration when power pellet is active
+export const GHOST_FRIGHTENED_FLASH_START = 3000; // When to start flashing (time remaining)
+export const GHOST_FRIGHTENED_COLOR = "#2121DE";
 export const GHOST_FRIGHTENED_FLASH_COLOR = "#FFFFFF";
+export const GHOST_EATEN_SPEED = 2; // Speed multiplier when eaten
 
 // Game States
 export const GAME_STATES = {

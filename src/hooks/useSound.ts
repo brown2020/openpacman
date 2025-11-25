@@ -1,8 +1,11 @@
 import { useEffect, useRef, useCallback } from "react";
 import { SoundManager } from "../utils/soundManager";
 
+type SoundEffect = "dot" | "death" | "powerPellet" | "eatGhost" | "levelComplete" | "gameOver";
+
 export const useSound = () => {
   const soundManagerRef = useRef<SoundManager | null>(null);
+  const isMutedRef = useRef(false);
 
   useEffect(() => {
     // Initialize sound manager only on client side
@@ -17,15 +20,34 @@ export const useSound = () => {
     };
   }, []);
 
-  const playSound = useCallback((effect: "dot" | "death") => {
-    if (!soundManagerRef.current) return;
-    if (effect === "dot") {
-      soundManagerRef.current.playDotSound();
-    } else if (effect === "death") {
-      soundManagerRef.current.playDeathSound();
+  const playSound = useCallback((effect: SoundEffect) => {
+    if (!soundManagerRef.current || isMutedRef.current) return;
+    
+    switch (effect) {
+      case "dot":
+        soundManagerRef.current.playDotSound();
+        break;
+      case "death":
+        soundManagerRef.current.playDeathSound();
+        break;
+      case "powerPellet":
+        soundManagerRef.current.playPowerPelletSound?.();
+        break;
+      case "eatGhost":
+        soundManagerRef.current.playGhostEatSound?.();
+        break;
+      default:
+        break;
     }
   }, []);
 
-  return { playSound };
-};
+  const toggleMute = useCallback(() => {
+    isMutedRef.current = !isMutedRef.current;
+    if (soundManagerRef.current) {
+      soundManagerRef.current.toggleMute();
+    }
+    return isMutedRef.current;
+  }, []);
 
+  return { playSound, toggleMute, isMuted: isMutedRef.current };
+};
