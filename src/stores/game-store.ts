@@ -1,18 +1,22 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { LEVELS } from "../levels/gameLevels";
-import { getInitialDots, isValidMove, getNextPosition } from "../utils/gameUtils";
-import { 
-  createInitialGhosts, 
-  updateGhostPosition, 
-  frightenGhosts, 
+import {
+  getInitialDots,
+  isValidMove,
+  getNextPosition,
+} from "../utils/gameUtils";
+import {
+  createInitialGhosts,
+  updateGhostPosition,
+  frightenGhosts,
   eatGhost,
   checkGhostCollision,
   getGhostEatScore,
   getPowerPellets,
 } from "../utils/gameEngine";
-import { 
-  INITIAL_POSITION, 
+import {
+  INITIAL_POSITION,
   CELL_TYPES,
   SCORE_DOT,
   SCORE_POWER_PELLET,
@@ -44,7 +48,7 @@ export interface GameStoreState {
   isPaused: boolean;
   powerPelletTimeoutId: NodeJS.Timeout | null;
   isTransitioning: boolean;
-  
+
   // Timing
   lastMoveTime: number;
   moveAccumulator: number;
@@ -61,7 +65,11 @@ export interface GameStoreState {
   setGameOver: () => void;
   collectDot: (dotPos: Position) => void;
   collectPowerPellet: (pelletPos: Position) => void;
-  handleGhostCollision: () => { died: boolean; ateGhost: boolean; score: number };
+  handleGhostCollision: () => {
+    died: boolean;
+    ateGhost: boolean;
+    score: number;
+  };
   updateGameState: (updater: (s: GameState) => GameState) => void;
   resetEntitiesAfterDeath: () => void;
   resetGame: () => void;
@@ -78,7 +86,6 @@ const createInitialGameState = (): GameState => ({
   score: 0,
   highScore: 0,
   lives: 3,
-  paused: false,
   gameStateType: "READY",
   powerPelletActive: false,
   dotsEaten: 0,
@@ -112,12 +119,12 @@ export const useGameStore = create<GameStoreState>()(
         const layout = LEVELS[level]?.layout || LEVELS[0].layout;
         const initialDots = getInitialDots(layout);
         const initialPowerPellets = getPowerPellets(layout);
-        
+
         // Clear any existing power pellet timeout
         if (prevTimeoutId) {
           clearTimeout(prevTimeoutId);
         }
-        
+
         set({
           gameState: {
             ...createInitialGameState(),
@@ -144,19 +151,20 @@ export const useGameStore = create<GameStoreState>()(
         });
       },
 
-      setPacmanPos: (pos) => set((s) => ({ 
-        pacmanPrevPos: s.pacmanPos,
-        pacmanPos: pos 
-      })),
-      
+      setPacmanPos: (pos) =>
+        set((s) => ({
+          pacmanPrevPos: s.pacmanPos,
+          pacmanPos: pos,
+        })),
+
       setDirection: (dir) => set({ direction: dir }),
-      
+
       setNextDirection: (dir) => set({ nextDirection: dir }),
 
       movePacman: () => {
         const { pacmanPos, direction, nextDirection, gameState } = get();
         const layout = LEVELS[gameState.level]?.layout || LEVELS[0].layout;
-        
+
         // Try next direction first if set
         if (nextDirection) {
           const nextPos = getNextPosition(pacmanPos, nextDirection);
@@ -170,7 +178,7 @@ export const useGameStore = create<GameStoreState>()(
             return true;
           }
         }
-        
+
         // Otherwise continue in current direction
         const newPos = getNextPosition(pacmanPos, direction);
         if (isValidMove(newPos, layout)) {
@@ -180,36 +188,44 @@ export const useGameStore = create<GameStoreState>()(
           }));
           return true;
         }
-        
+
         return false;
       },
-      
+
       updateGhosts: (deltaTime: number) => {
         const { ghosts, pacmanPos, direction, gameState } = get();
-        if (!gameState.isPlaying || gameState.gameOver || gameState.gameWon) return;
+        if (!gameState.isPlaying || gameState.gameOver || gameState.gameWon)
+          return;
 
         const layout = LEVELS[gameState.level]?.layout || LEVELS[0].layout;
-        
+
         // Find Blinky's position for Inky's AI
-        const blinky = ghosts.find(g => g.name === "BLINKY");
+        const blinky = ghosts.find((g) => g.name === "BLINKY");
         const blinkyPos = blinky?.position || pacmanPos;
 
-        const newGhosts = ghosts.map((ghost) => 
-          updateGhostPosition(ghost, pacmanPos, direction, layout, blinkyPos, deltaTime)
+        const newGhosts = ghosts.map((ghost) =>
+          updateGhostPosition(
+            ghost,
+            pacmanPos,
+            direction,
+            layout,
+            blinkyPos,
+            deltaTime
+          )
         );
 
         set({ ghosts: newGhosts });
       },
 
       setDots: (dots) => set({ dots }),
-      
+
       toggleMouth: () => set((s) => ({ mouthOpen: !s.mouthOpen })),
-      
+
       setHighScores: (scores) => set({ highScores: scores }),
-      
+
       setGameOver: () => {
         const { gameState, highScores } = get();
-        
+
         const newScore: GameScore = {
           score: gameState.score,
           level: gameState.level,
@@ -239,7 +255,7 @@ export const useGameStore = create<GameStoreState>()(
         const remainingDots = dots.filter(
           (dot) => dot.x !== dotPos.x || dot.y !== dotPos.y
         );
-        
+
         if (remainingDots.length < dots.length) {
           const newScore = gameState.score + SCORE_DOT;
           set({
@@ -259,15 +275,15 @@ export const useGameStore = create<GameStoreState>()(
         const remainingPellets = powerPellets.filter(
           (p) => p.x !== pelletPos.x || p.y !== pelletPos.y
         );
-        
+
         if (remainingPellets.length < powerPellets.length) {
           // Clear any existing power pellet timeout
           if (powerPelletTimeoutId) {
             clearTimeout(powerPelletTimeoutId);
           }
-          
+
           const newScore = gameState.score + SCORE_POWER_PELLET;
-          
+
           // Create new timeout for power pellet expiration
           const newTimeoutId = setTimeout(() => {
             set((s) => ({
@@ -278,7 +294,7 @@ export const useGameStore = create<GameStoreState>()(
               powerPelletTimeoutId: null,
             }));
           }, GHOST_FRIGHTENED_DURATION);
-          
+
           set({
             powerPellets: remainingPellets,
             ghosts: frightenGhosts(ghosts),
@@ -297,16 +313,16 @@ export const useGameStore = create<GameStoreState>()(
       handleGhostCollision: () => {
         const { pacmanPos, ghosts, gameState, ghostsEatenInChain } = get();
         const collision = checkGhostCollision(pacmanPos, ghosts);
-        
+
         if (!collision.collision || !collision.ghost) {
           return { died: false, ateGhost: false, score: 0 };
         }
-        
+
         if (collision.canEat) {
           // Eat the ghost
           const score = getGhostEatScore(ghostsEatenInChain);
           const newGhosts = eatGhost(ghosts, collision.ghost);
-          
+
           set({
             ghosts: newGhosts,
             ghostsEatenInChain: ghostsEatenInChain + 1,
@@ -317,19 +333,19 @@ export const useGameStore = create<GameStoreState>()(
               highScore: Math.max(gameState.highScore, gameState.score + score),
             },
           });
-          
+
           return { died: false, ateGhost: true, score };
         }
-        
+
         // Pacman dies
         return { died: true, ateGhost: false, score: 0 };
       },
-        
+
       updateGameState: (updater) =>
         set((s) => ({
           gameState: updater(s.gameState),
         })),
-        
+
       resetEntitiesAfterDeath: () =>
         set(() => ({
           pacmanPos: INITIAL_POSITION,
@@ -345,7 +361,7 @@ export const useGameStore = create<GameStoreState>()(
         if (powerPelletTimeoutId) {
           clearTimeout(powerPelletTimeoutId);
         }
-        
+
         set({
           gameState: createInitialGameState(),
           pacmanPos: INITIAL_POSITION,
@@ -363,19 +379,18 @@ export const useGameStore = create<GameStoreState>()(
       },
 
       togglePause: () => {
-        set((s) => ({
-          isPaused: !s.isPaused,
-          gameState: {
-            ...s.gameState,
-            paused: !s.isPaused,
-          },
-        }));
+        set((s) => ({ isPaused: !s.isPaused }));
       },
 
       tick: (deltaTime: number) => {
         const state = get();
-        if (!state.gameState.isPlaying || state.gameState.gameOver || 
-            state.gameState.gameWon || state.isPaused) return;
+        if (
+          !state.gameState.isPlaying ||
+          state.gameState.gameOver ||
+          state.gameState.gameWon ||
+          state.isPaused
+        )
+          return;
 
         // Update ghosts with delta time
         state.updateGhosts(deltaTime);
@@ -384,7 +399,7 @@ export const useGameStore = create<GameStoreState>()(
     {
       name: "pacman-storage",
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ 
+      partialize: (state) => ({
         highScores: state.highScores,
         gameState: { highScore: state.gameState.highScore },
       }),

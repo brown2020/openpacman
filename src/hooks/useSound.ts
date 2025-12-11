@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { SoundManager } from "../utils/soundManager";
 
-type SoundEffect = "dot" | "death" | "powerPellet" | "eatGhost" | "levelComplete" | "gameOver";
+type SoundEffect = "dot" | "death" | "powerPellet" | "eatGhost";
 
 export const useSound = () => {
   const soundManagerRef = useRef<SoundManager | null>(null);
@@ -22,7 +22,7 @@ export const useSound = () => {
 
   const playSound = useCallback((effect: SoundEffect) => {
     if (!soundManagerRef.current || isMutedRef.current) return;
-    
+
     switch (effect) {
       case "dot":
         soundManagerRef.current.playDotSound();
@@ -31,12 +31,10 @@ export const useSound = () => {
         soundManagerRef.current.playDeathSound();
         break;
       case "powerPellet":
-        soundManagerRef.current.playPowerPelletSound?.();
+        soundManagerRef.current.playPowerPelletSound();
         break;
       case "eatGhost":
-        soundManagerRef.current.playGhostEatSound?.();
-        break;
-      default:
+        soundManagerRef.current.playGhostEatSound();
         break;
     }
   }, []);

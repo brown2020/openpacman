@@ -61,12 +61,12 @@ export class SoundManager {
 
   private ensureAudioContext(): boolean {
     if (!this.audioContext) return false;
-    
+
     // Resume audio context if suspended (required for user interaction)
     if (this.audioContext.state === "suspended") {
       this.audioContext.resume();
     }
-    
+
     return true;
   }
 
@@ -109,7 +109,8 @@ export class SoundManager {
   }
 
   public playDotSound(): void {
-    if (!this.ensureAudioContext() || this.isMuted || !this.audioContext) return;
+    if (!this.ensureAudioContext() || this.isMuted || !this.audioContext)
+      return;
 
     const track = this.createTrack();
 
@@ -141,7 +142,8 @@ export class SoundManager {
   }
 
   public playDeathSound(): void {
-    if (!this.ensureAudioContext() || this.isMuted || !this.audioContext) return;
+    if (!this.ensureAudioContext() || this.isMuted || !this.audioContext)
+      return;
 
     const track = this.createTrack();
 
@@ -178,7 +180,8 @@ export class SoundManager {
   }
 
   public playPowerPelletSound(): void {
-    if (!this.ensureAudioContext() || this.isMuted || !this.audioContext) return;
+    if (!this.ensureAudioContext() || this.isMuted || !this.audioContext)
+      return;
 
     // Create an ascending arpeggio effect
     const frequencies = [262, 330, 392, 523]; // C, E, G, C
@@ -206,7 +209,9 @@ export class SoundManager {
           this.audioContext.currentTime + (i + 1) * noteDuration
         );
 
-        track.oscillator.start(this.audioContext.currentTime + i * noteDuration);
+        track.oscillator.start(
+          this.audioContext.currentTime + i * noteDuration
+        );
         track.oscillator.stop(
           this.audioContext.currentTime + (i + 1) * noteDuration + 0.05
         );
@@ -219,7 +224,8 @@ export class SoundManager {
   }
 
   public playGhostEatSound(): void {
-    if (!this.ensureAudioContext() || this.isMuted || !this.audioContext) return;
+    if (!this.ensureAudioContext() || this.isMuted || !this.audioContext)
+      return;
 
     const track = this.createTrack();
 
@@ -245,81 +251,6 @@ export class SoundManager {
 
       track.oscillator.start();
       track.oscillator.stop(this.audioContext.currentTime + 0.2);
-
-      track.oscillator.onended = () => {
-        this.cleanupTrack(track);
-      };
-    }
-  }
-
-  public playLevelCompleteSound(): void {
-    if (!this.ensureAudioContext() || this.isMuted || !this.audioContext) return;
-
-    // Victory fanfare
-    const notes = [
-      { freq: 523, time: 0 },     // C5
-      { freq: 659, time: 0.15 },  // E5
-      { freq: 784, time: 0.3 },   // G5
-      { freq: 1047, time: 0.45 }, // C6
-    ];
-
-    notes.forEach(({ freq, time }) => {
-      const track = this.createTrack();
-      if (track.oscillator && track.gainNode && this.audioContext) {
-        track.oscillator.type = "triangle";
-        track.oscillator.frequency.setValueAtTime(
-          freq,
-          this.audioContext.currentTime + time
-        );
-
-        track.gainNode.gain.setValueAtTime(0, this.audioContext.currentTime + time);
-        track.gainNode.gain.linearRampToValueAtTime(
-          SOUND.VOLUME.EFFECTS * this.masterVolume * 0.5,
-          this.audioContext.currentTime + time + 0.02
-        );
-        track.gainNode.gain.exponentialRampToValueAtTime(
-          0.001,
-          this.audioContext.currentTime + time + 0.3
-        );
-
-        track.oscillator.start(this.audioContext.currentTime + time);
-        track.oscillator.stop(this.audioContext.currentTime + time + 0.35);
-
-        track.oscillator.onended = () => {
-          this.cleanupTrack(track);
-        };
-      }
-    });
-  }
-
-  public playGameOverSound(): void {
-    if (!this.ensureAudioContext() || this.isMuted || !this.audioContext) return;
-
-    // Descending sad tone
-    const track = this.createTrack();
-
-    if (track.oscillator && track.gainNode) {
-      track.oscillator.type = "triangle";
-      track.oscillator.frequency.setValueAtTime(
-        440,
-        this.audioContext.currentTime
-      );
-      track.oscillator.frequency.exponentialRampToValueAtTime(
-        110,
-        this.audioContext.currentTime + 1
-      );
-
-      track.gainNode.gain.setValueAtTime(
-        SOUND.VOLUME.EFFECTS * this.masterVolume * 0.4,
-        this.audioContext.currentTime
-      );
-      track.gainNode.gain.exponentialRampToValueAtTime(
-        0.001,
-        this.audioContext.currentTime + 1.2
-      );
-
-      track.oscillator.start();
-      track.oscillator.stop(this.audioContext.currentTime + 1.2);
 
       track.oscillator.onended = () => {
         this.cleanupTrack(track);

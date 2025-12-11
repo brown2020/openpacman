@@ -1,24 +1,24 @@
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
-@import 'tailwindcss';
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap");
+@import "tailwindcss";
 
 @theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  
+
   /* Pacman Theme Colors */
-  --color-pacman-yellow: #FFE135;
-  --color-pacman-gold: #FFA500;
-  --color-maze-blue: #1B1464;
-  --color-maze-border: #2929A3;
-  --color-dot-color: #FFB897;
-  --color-power-pellet: #FFB74D;
-  
+  --color-pacman-yellow: #ffe135;
+  --color-pacman-gold: #ffa500;
+  --color-maze-blue: #1b1464;
+  --color-maze-border: #2929a3;
+  --color-dot-color: #ffb897;
+  --color-power-pellet: #ffb74d;
+
   /* Ghost Colors */
-  --color-ghost-blinky: #FF0000;
-  --color-ghost-pinky: #FFB8FF;
-  --color-ghost-inky: #00FFFF;
-  --color-ghost-clyde: #FFB852;
-  --color-ghost-frightened: #2121DE;
+  --color-ghost-blinky: #ff0000;
+  --color-ghost-pinky: #ffb8ff;
+  --color-ghost-inky: #00ffff;
+  --color-ghost-clyde: #ffb852;
+  --color-ghost-frightened: #2121de;
   --color-ghost-eaten: rgba(255, 255, 255, 0.3);
 }
 
@@ -40,20 +40,23 @@
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: 'Press Start 2P', 'VT323', monospace;
+  font-family: "Press Start 2P", "VT323", monospace;
   overflow: hidden;
 }
 
 /* Retro arcade background */
 .arcade-bg {
-  background: 
-    radial-gradient(ellipse at 50% 0%, rgba(27, 20, 100, 0.4) 0%, transparent 60%),
+  background: radial-gradient(
+      ellipse at 50% 0%,
+      rgba(27, 20, 100, 0.4) 0%,
+      transparent 60%
+    ),
     linear-gradient(180deg, #0a0a0a 0%, #0f0f23 50%, #0a0a0a 100%);
 }
 
 /* Scanline effect */
 .scanlines::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   background: repeating-linear-gradient(
@@ -69,16 +72,13 @@ body {
 
 /* CRT glow effect */
 .crt-glow {
-  box-shadow: 
-    0 0 60px rgba(27, 20, 100, 0.6),
-    0 0 100px rgba(27, 20, 100, 0.3),
+  box-shadow: 0 0 60px rgba(27, 20, 100, 0.6), 0 0 100px rgba(27, 20, 100, 0.3),
     inset 0 0 30px rgba(0, 0, 0, 0.8);
 }
 
 /* Maze wall glow */
 .wall-glow {
-  box-shadow: 
-    inset 0 0 8px rgba(41, 41, 163, 0.8),
+  box-shadow: inset 0 0 8px rgba(41, 41, 163, 0.8),
     0 0 4px rgba(41, 41, 163, 0.4);
 }
 
@@ -89,8 +89,10 @@ body {
 
 /* Power pellet pulse animation */
 @keyframes pulse-glow {
-  0%, 100% {
-    box-shadow: 0 0 8px rgba(255, 183, 77, 0.8), 0 0 16px rgba(255, 183, 77, 0.4);
+  0%,
+  100% {
+    box-shadow: 0 0 8px rgba(255, 183, 77, 0.8),
+      0 0 16px rgba(255, 183, 77, 0.4);
     transform: scale(1);
   }
   50% {
@@ -105,11 +107,13 @@ body {
 
 /* Ghost frightened flash */
 @keyframes frightened-flash {
-  0%, 50% {
-    fill: #2121DE;
+  0%,
+  50% {
+    fill: #2121de;
   }
-  51%, 100% {
-    fill: #FFFFFF;
+  51%,
+  100% {
+    fill: #ffffff;
   }
 }
 
@@ -119,7 +123,8 @@ body {
 
 /* Ghost float animation */
 @keyframes ghost-float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {
@@ -133,11 +138,28 @@ body {
 
 /* Pacman chomp animation */
 @keyframes pacman-chomp {
-  0%, 100% {
-    clip-path: polygon(100% 50%, 100% 0%, 0% 0%, 0% 100%, 100% 100%, 100% 50%, 50% 50%);
+  0%,
+  100% {
+    clip-path: polygon(
+      100% 50%,
+      100% 0%,
+      0% 0%,
+      0% 100%,
+      100% 100%,
+      100% 50%,
+      50% 50%
+    );
   }
   50% {
-    clip-path: polygon(100% 50%, 100% 25%, 0% 0%, 0% 100%, 100% 75%, 100% 50%, 50% 50%);
+    clip-path: polygon(
+      100% 50%,
+      100% 25%,
+      0% 0%,
+      0% 100%,
+      100% 75%,
+      100% 50%,
+      50% 50%
+    );
   }
 }
 
@@ -164,7 +186,8 @@ body {
 
 /* Level complete flash */
 @keyframes level-flash {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -178,17 +201,14 @@ body {
 
 /* Title glow animation */
 @keyframes title-glow {
-  0%, 100% {
-    text-shadow: 
-      0 0 10px rgba(255, 225, 53, 0.8),
-      0 0 20px rgba(255, 225, 53, 0.6),
-      0 0 30px rgba(255, 225, 53, 0.4);
+  0%,
+  100% {
+    text-shadow: 0 0 10px rgba(255, 225, 53, 0.8),
+      0 0 20px rgba(255, 225, 53, 0.6), 0 0 30px rgba(255, 225, 53, 0.4);
   }
   50% {
-    text-shadow: 
-      0 0 20px rgba(255, 225, 53, 1),
-      0 0 40px rgba(255, 225, 53, 0.8),
-      0 0 60px rgba(255, 225, 53, 0.6);
+    text-shadow: 0 0 20px rgba(255, 225, 53, 1),
+      0 0 40px rgba(255, 225, 53, 0.8), 0 0 60px rgba(255, 225, 53, 0.6);
   }
 }
 
@@ -199,17 +219,15 @@ body {
 /* Button neon effect */
 .neon-button {
   position: relative;
-  background: linear-gradient(180deg, #2929A3 0%, #1B1464 100%);
-  border: 2px solid #5555FF;
+  background: linear-gradient(180deg, #2929a3 0%, #1b1464 100%);
+  border: 2px solid #5555ff;
   text-shadow: 0 0 10px currentColor;
   transition: all 0.3s ease;
 }
 
 .neon-button:hover {
-  background: linear-gradient(180deg, #3939C3 0%, #2B2484 100%);
-  box-shadow: 
-    0 0 20px rgba(85, 85, 255, 0.6),
-    0 0 40px rgba(85, 85, 255, 0.3);
+  background: linear-gradient(180deg, #3939c3 0%, #2b2484 100%);
+  box-shadow: 0 0 20px rgba(85, 85, 255, 0.6), 0 0 40px rgba(85, 85, 255, 0.3);
   transform: scale(1.05);
 }
 
@@ -219,14 +237,15 @@ body {
 
 /* High score table styling */
 .arcade-table {
-  font-family: 'Press Start 2P', 'VT323', monospace;
+  font-family: "Press Start 2P", "VT323", monospace;
   font-size: 0.75rem;
   letter-spacing: 0.05em;
 }
 
 /* Pause overlay */
 @keyframes pause-blink {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -240,9 +259,23 @@ body {
 
 /* Game over shake */
 @keyframes game-over-shake {
-  0%, 100% { transform: translateX(0); }
-  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-  20%, 40%, 60%, 80% { transform: translateX(5px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: translateX(-5px);
+  }
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: translateX(5px);
+  }
 }
 
 .game-over-shake {
@@ -251,8 +284,13 @@ body {
 
 /* Starfield background for start screen */
 @keyframes twinkle {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .star {
@@ -266,8 +304,7 @@ body {
 
 /* Grid pattern */
 .grid-pattern {
-  background-image: 
-    linear-gradient(rgba(41, 41, 163, 0.1) 1px, transparent 1px),
+  background-image: linear-gradient(rgba(41, 41, 163, 0.1) 1px, transparent 1px),
     linear-gradient(90deg, rgba(41, 41, 163, 0.1) 1px, transparent 1px);
   background-size: 24px 24px;
 }
@@ -275,4 +312,42 @@ body {
 /* Ghost eyes following */
 .ghost-eyes {
   transition: transform 0.1s ease-out;
+}
+
+/* Arcade font utility */
+.font-arcade {
+  font-family: "Press Start 2P", "VT323", monospace;
+}
+
+/* Arcade card styling */
+.arcade-card {
+  background: rgba(27, 20, 100, 0.2);
+  border: 1px solid rgba(68, 68, 255, 0.2);
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+/* High scores card (darker variant) */
+.arcade-card-dark {
+  background: linear-gradient(
+    180deg,
+    rgba(27, 20, 100, 0.3) 0%,
+    rgba(13, 13, 43, 0.3) 100%
+  );
+  border: 1px solid rgba(68, 68, 255, 0.3);
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+/* Text glow utilities */
+.text-glow-yellow {
+  text-shadow: 0 0 10px rgba(250, 204, 21, 0.5);
+}
+
+.text-glow-blue {
+  text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+}
+
+.text-glow-green {
+  text-shadow: 0 0 10px rgba(74, 222, 128, 0.5);
 }

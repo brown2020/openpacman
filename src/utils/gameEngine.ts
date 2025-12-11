@@ -1,9 +1,16 @@
 // utils/gameEngine.ts
-import { Position, Direction, Ghost, GhostMode, Matrix, CellType } from "../types/types";
-import { 
-  CELL_TYPES, 
-  GHOST_COLORS, 
-  GHOST_NAMES, 
+import {
+  Position,
+  Direction,
+  Ghost,
+  GhostMode,
+  Matrix,
+  CellType,
+} from "../types/types";
+import {
+  CELL_TYPES,
+  GHOST_COLORS,
+  GHOST_NAMES,
   GHOST_INITIAL_POSITIONS,
   DIRECTIONS,
   GHOST_FRIGHTENED_DURATION,
@@ -11,7 +18,12 @@ import {
   GHOST_SCATTER_DURATION,
 } from "../constants/gameConstants";
 import { getNextMoveTowards, getRandomWanderTarget } from "./pathfinding";
-import { isValidMove, getNextPosition, calculateDistance } from "./gameUtils";
+import {
+  isValidMove,
+  getNextPosition,
+  calculateDistance,
+  getPositionAhead,
+} from "./gameUtils";
 
 /**
  * Ghost behavior configuration per ghost type
@@ -84,21 +96,6 @@ export const getGhostChaseTarget = (
   }
 };
 
-const getPositionAhead = (pos: Position, dir: Direction, tiles: number): Position => {
-  switch (dir) {
-    case DIRECTIONS.UP:
-      return { x: pos.x, y: pos.y - tiles };
-    case DIRECTIONS.DOWN:
-      return { x: pos.x, y: pos.y + tiles };
-    case DIRECTIONS.LEFT:
-      return { x: pos.x - tiles, y: pos.y };
-    case DIRECTIONS.RIGHT:
-      return { x: pos.x + tiles, y: pos.y };
-    default:
-      return pos;
-  }
-};
-
 /**
  * Update a single ghost's position based on its mode
  */
@@ -142,7 +139,7 @@ export const updateGhostPosition = (
     case GhostMode.FRIGHTENED:
       // Random movement when frightened
       target = getRandomWanderTarget(ghost.position, maze, ghost.direction);
-      
+
       // Check if frightened time is over
       if (ghost.frightenedTimeLeft && ghost.frightenedTimeLeft <= 0) {
         newMode = GhostMode.CHASE;
@@ -152,7 +149,7 @@ export const updateGhostPosition = (
     case GhostMode.EATEN:
       // Return to ghost house
       target = { x: 9, y: 9 };
-      
+
       // Check if reached ghost house
       if (ghost.position.x === target.x && ghost.position.y === target.y) {
         newMode = GhostMode.HOUSE;
@@ -188,18 +185,20 @@ export const updateGhostPosition = (
       direction: newDirection,
       targetPosition: target,
       mode: newMode,
-      frightenedTimeLeft: ghost.mode === GhostMode.FRIGHTENED 
-        ? (ghost.frightenedTimeLeft || 0) - deltaTime 
-        : undefined,
+      frightenedTimeLeft:
+        ghost.mode === GhostMode.FRIGHTENED
+          ? (ghost.frightenedTimeLeft || 0) - deltaTime
+          : undefined,
     };
   }
 
   return {
     ...ghost,
     mode: newMode,
-    frightenedTimeLeft: ghost.mode === GhostMode.FRIGHTENED 
-      ? (ghost.frightenedTimeLeft || 0) - deltaTime 
-      : undefined,
+    frightenedTimeLeft:
+      ghost.mode === GhostMode.FRIGHTENED
+        ? (ghost.frightenedTimeLeft || 0) - deltaTime
+        : undefined,
   };
 };
 
@@ -207,8 +206,10 @@ export const updateGhostPosition = (
  * Create initial ghost array
  */
 export const createInitialGhosts = (): Ghost[] => {
-  const ghostNames = Object.values(GHOST_NAMES) as Array<keyof typeof GHOST_NAMES>;
-  
+  const ghostNames = Object.values(GHOST_NAMES) as Array<
+    keyof typeof GHOST_NAMES
+  >;
+
   return ghostNames.map((name, index) => ({
     position: { ...GHOST_INITIAL_POSITIONS[index] },
     previousPosition: { ...GHOST_INITIAL_POSITIONS[index] },
@@ -232,7 +233,7 @@ export const frightenGhosts = (ghosts: Ghost[]): Ghost[] => {
     if (ghost.mode === GhostMode.EATEN || ghost.mode === GhostMode.HOUSE) {
       return ghost;
     }
-    
+
     return {
       ...ghost,
       mode: GhostMode.FRIGHTENED,
@@ -255,7 +256,7 @@ export const checkGhostCollision = (
       if (ghost.mode === GhostMode.EATEN) {
         continue;
       }
-      
+
       const canEat = ghost.mode === GhostMode.FRIGHTENED;
       return { collision: true, ghost, canEat };
     }
@@ -284,7 +285,7 @@ export const eatGhost = (ghosts: Ghost[], eatenGhost: Ghost): Ghost[] => {
  */
 export const getPowerPellets = (level: Matrix<CellType>): Position[] => {
   const pellets: Position[] = [];
-  
+
   for (let y = 0; y < level.length; y++) {
     for (let x = 0; x < level[0].length; x++) {
       if (level[y][x] === CELL_TYPES.POWER_PELLET) {
@@ -292,7 +293,7 @@ export const getPowerPellets = (level: Matrix<CellType>): Position[] => {
       }
     }
   }
-  
+
   return pellets;
 };
 
@@ -303,4 +304,3 @@ export const getGhostEatScore = (ghostsEatenInChain: number): number => {
   // 200, 400, 800, 1600 for consecutive ghosts
   return 200 * Math.pow(2, Math.min(ghostsEatenInChain, 3));
 };
-

@@ -2,22 +2,15 @@
 import {
   Position,
   Direction,
-  Ghost,
-  Player,
-  GhostMode,
   CellType,
   Hitbox,
   ScoreEntry,
   GameEntity,
   Matrix,
-  GhostName,
 } from "../types/types";
 
 import {
   CELL_SIZE,
-  GHOST_COLORS,
-  GHOST_NAMES,
-  GHOST_INITIAL_POSITIONS,
   CELL_TYPES,
   DIRECTIONS,
   STORAGE_KEYS,
@@ -56,114 +49,7 @@ export const getNextPosition = (
   }
 };
 
-export const calculateDistance = (pos1: Position, pos2: Position): number => {
-  return Math.sqrt(Math.pow(pos2.x - pos1.x, 2) + Math.pow(pos2.y - pos1.y, 2));
-};
-
-// Ghost Utils
-export const getInitialGhosts = (): Ghost[] => {
-  return [
-    {
-      position: GHOST_INITIAL_POSITIONS[0],
-      previousPosition: GHOST_INITIAL_POSITIONS[0],
-      color: GHOST_COLORS[GHOST_NAMES.BLINKY],
-      name: GHOST_NAMES.BLINKY,
-      mode: GhostMode.HOUSE,
-      speed: 1,
-      targetPosition: GHOST_INITIAL_POSITIONS[0],
-      direction: DIRECTIONS.LEFT,
-      isMoving: false,
-      houseTimeLeft: 2000,
-    },
-    {
-      position: GHOST_INITIAL_POSITIONS[1],
-      previousPosition: GHOST_INITIAL_POSITIONS[1],
-      color: GHOST_COLORS[GHOST_NAMES.PINKY],
-      name: GHOST_NAMES.PINKY,
-      mode: GhostMode.HOUSE,
-      speed: 1,
-      targetPosition: GHOST_INITIAL_POSITIONS[1],
-      direction: DIRECTIONS.LEFT,
-      isMoving: false,
-      houseTimeLeft: 3000,
-    },
-    {
-      position: GHOST_INITIAL_POSITIONS[2],
-      previousPosition: GHOST_INITIAL_POSITIONS[2],
-      color: GHOST_COLORS[GHOST_NAMES.INKY],
-      name: GHOST_NAMES.INKY,
-      mode: GhostMode.HOUSE,
-      speed: 1,
-      targetPosition: GHOST_INITIAL_POSITIONS[2],
-      direction: DIRECTIONS.LEFT,
-      isMoving: false,
-      houseTimeLeft: 4000,
-    },
-    {
-      position: GHOST_INITIAL_POSITIONS[3],
-      previousPosition: GHOST_INITIAL_POSITIONS[3],
-      color: GHOST_COLORS[GHOST_NAMES.CLYDE],
-      name: GHOST_NAMES.CLYDE,
-      mode: GhostMode.HOUSE,
-      speed: 1,
-      targetPosition: GHOST_INITIAL_POSITIONS[3],
-      direction: DIRECTIONS.LEFT,
-      isMoving: false,
-      houseTimeLeft: 5000,
-    },
-  ];
-};
-
-export const getGhostTarget = (
-  ghost: Ghost,
-  player: Player,
-  level: Matrix<CellType>
-): Position => {
-  switch (ghost.mode) {
-    case GhostMode.CHASE:
-      switch (ghost.name) {
-        case GHOST_NAMES.BLINKY:
-          return player.position;
-        case GHOST_NAMES.PINKY:
-          return getPositionInFront(player.position, player.direction, 4);
-        case GHOST_NAMES.INKY:
-          const twoTilesAhead = getPositionInFront(
-            player.position,
-            player.direction,
-            2
-          );
-          return getInkyTarget(twoTilesAhead, ghost.position);
-        case GHOST_NAMES.CLYDE:
-          return calculateDistance(ghost.position, player.position) > 8
-            ? player.position
-            : getScatterPosition(ghost.name);
-        default:
-          return player.position;
-      }
-    case GhostMode.SCATTER:
-      return getScatterPosition(ghost.name);
-    case GhostMode.FRIGHTENED:
-      return getRandomValidPosition(level);
-    case GhostMode.EATEN:
-      return { x: 9, y: 9 };
-    default:
-      return ghost.position;
-  }
-};
-
-const getInkyTarget = (
-  pacmanAhead: Position,
-  blinkyPos: Position
-): Position => {
-  const vectorX = pacmanAhead.x - blinkyPos.x;
-  const vectorY = pacmanAhead.y - blinkyPos.y;
-  return {
-    x: pacmanAhead.x + vectorX,
-    y: pacmanAhead.y + vectorY,
-  };
-};
-
-const getPositionInFront = (
+export const getPositionAhead = (
   pos: Position,
   direction: Direction,
   tiles: number
@@ -177,22 +63,13 @@ const getPositionInFront = (
       return { x: pos.x - tiles, y: pos.y };
     case DIRECTIONS.RIGHT:
       return { x: pos.x + tiles, y: pos.y };
+    default:
+      return pos;
   }
 };
 
-const getScatterPosition = (ghostName: GhostName): Position => {
-  switch (ghostName) {
-    case GHOST_NAMES.BLINKY:
-      return { x: 18, y: 0 };
-    case GHOST_NAMES.PINKY:
-      return { x: 0, y: 0 };
-    case GHOST_NAMES.INKY:
-      return { x: 18, y: 19 };
-    case GHOST_NAMES.CLYDE:
-      return { x: 0, y: 19 };
-    default:
-      return { x: 0, y: 0 };
-  }
+export const calculateDistance = (pos1: Position, pos2: Position): number => {
+  return Math.sqrt(Math.pow(pos2.x - pos1.x, 2) + Math.pow(pos2.y - pos1.y, 2));
 };
 
 // Collision Detection
@@ -233,17 +110,6 @@ export const getInitialDots = (level: Matrix<CellType>): Position[] => {
   return dots;
 };
 
-export const getRandomValidPosition = (level: Matrix<CellType>): Position => {
-  let position: Position;
-  do {
-    position = {
-      x: Math.floor(Math.random() * level[0].length),
-      y: Math.floor(Math.random() * level.length),
-    };
-  } while (!isValidMove(position, level));
-  return position;
-};
-
 // Score Management
 export const updateHighScores = (score: number, level: number): void => {
   try {
@@ -271,15 +137,4 @@ export const updateHighScores = (score: number, level: number): void => {
       error instanceof Error ? error.message : "Unknown error"
     );
   }
-};
-
-// Debug Utils
-export const debugLog = (message: string, data?: unknown): void => {
-  if (process.env.NODE_ENV === "development") {
-    console.log(`[DEBUG] ${message}`, data);
-  }
-};
-
-export const getFPS = (deltaTime: number): number => {
-  return Math.round(1000 / deltaTime);
 };

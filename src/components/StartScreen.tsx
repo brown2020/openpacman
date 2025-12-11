@@ -1,5 +1,5 @@
 // components/StartScreen.tsx
-import React, { useMemo } from "react";
+import React from "react";
 import type { GameScore } from "../types/types";
 
 interface StartScreenProps {
@@ -11,22 +11,28 @@ interface StartScreenProps {
 }
 
 // Animated ghost component for the start screen
-const AnimatedGhost: React.FC<{ color: string; delay: number; x: number }> = ({ 
-  color, 
-  delay, 
-  x 
+const AnimatedGhost: React.FC<{ color: string; delay: number; x: number }> = ({
+  color,
+  delay,
+  x,
 }) => (
   <div
     className="absolute"
     style={{
       left: `${x}%`,
-      bottom: '20%',
+      bottom: "20%",
       animation: `ghost-float 2s ease-in-out infinite ${delay}s`,
     }}
   >
     <svg width="40" height="40" viewBox="0 0 24 24">
       <defs>
-        <linearGradient id={`startGhost-${color}`} x1="0%" y1="0%" x2="0%" y2="100%">
+        <linearGradient
+          id={`startGhost-${color}`}
+          x1="0%"
+          y1="0%"
+          x2="0%"
+          y2="100%"
+        >
           <stop offset="0%" stopColor={color} />
           <stop offset="100%" stopColor={color} stopOpacity="0.7" />
         </linearGradient>
@@ -43,40 +49,14 @@ const AnimatedGhost: React.FC<{ color: string; delay: number; x: number }> = ({
   </div>
 );
 
-// Animated Pacman for the start screen
-const AnimatedPacman: React.FC = () => (
-  <div
-    className="absolute"
-    style={{
-      left: '10%',
-      bottom: '20%',
-      animation: 'pacman-chase 8s linear infinite',
-    }}
-  >
-    <svg width="40" height="40" viewBox="0 0 24 24">
-      <defs>
-        <radialGradient id="startPacman" cx="30%" cy="30%" r="70%">
-          <stop offset="0%" stopColor="#FFE86C" />
-          <stop offset="100%" stopColor="#E5A800" />
-        </radialGradient>
-      </defs>
-      <circle cx="12" cy="12" r="11" fill="url(#startPacman)" />
-      <path d="M 12,12 L 24,6 A 11,11 0 0,0 24,18 Z" fill="#0a0a0a" />
-      <circle cx="14" cy="7" r="2" fill="#111" />
-    </svg>
-  </div>
-);
-
-// Generate random stars for the background
-const generateStars = (count: number) => {
-  return Array.from({ length: count }, (_, i) => ({
-    id: i,
-    x: Math.random() * 100,
-    y: Math.random() * 100,
-    size: Math.random() * 2 + 1,
-    delay: Math.random() * 5,
-  }));
-};
+// Generate stars once at module level (not on every render)
+const STARS = Array.from({ length: 50 }, (_, i) => ({
+  id: i,
+  x: Math.random() * 100,
+  y: Math.random() * 100,
+  size: Math.random() * 2 + 1,
+  delay: Math.random() * 5,
+}));
 
 export const StartScreen: React.FC<StartScreenProps> = ({
   onStart,
@@ -85,12 +65,10 @@ export const StartScreen: React.FC<StartScreenProps> = ({
   gameOver,
   gameWon,
 }) => {
-  const stars = useMemo(() => generateStars(50), []);
-
   const formatDate = (timestamp: number) => {
     return new Date(timestamp).toLocaleDateString(undefined, {
-      month: 'short',
-      day: 'numeric',
+      month: "short",
+      day: "numeric",
     });
   };
 
@@ -109,7 +87,7 @@ export const StartScreen: React.FC<StartScreenProps> = ({
   return (
     <div className="min-h-screen flex flex-col items-center justify-center arcade-bg text-white p-4 overflow-hidden relative">
       {/* Animated starfield background */}
-      {stars.map((star) => (
+      {STARS.map((star) => (
         <div
           key={star.id}
           className="star"
@@ -133,39 +111,30 @@ export const StartScreen: React.FC<StartScreenProps> = ({
       <div className="relative z-10 flex flex-col items-center max-w-lg w-full">
         {/* Logo */}
         <div className="mb-8 text-center">
-          <h1 
-            className="text-5xl md:text-7xl font-bold title-glow mb-2"
-            style={{ 
-              fontFamily: "'Press Start 2P', monospace",
-              color: '#FFE135',
-            }}
-          >
+          <h1 className="text-5xl md:text-7xl font-bold title-glow mb-2 font-arcade text-[#FFE135]">
             PAC-MAN
           </h1>
-          <div 
-            className={`text-xl md:text-2xl mt-4 ${
-              gameWon ? 'text-green-400' : gameOver ? 'text-red-400' : 'text-blue-400'
+          <div
+            className={`text-xl md:text-2xl mt-4 tracking-wide ${
+              gameWon
+                ? "text-green-400"
+                : gameOver
+                ? "text-red-400"
+                : "text-blue-400"
             }`}
-            style={{ fontFamily: "'VT323', monospace", letterSpacing: '0.1em' }}
           >
             {getMessage()}
           </div>
-          <div className="text-sm text-gray-500 mt-2">
-            {getSubMessage()}
-          </div>
+          <div className="text-sm text-gray-500 mt-2">{getSubMessage()}</div>
         </div>
 
         {/* Score Display (after game ends) */}
         {(gameOver || gameWon) && (
           <div className="mb-8 text-center">
-            <div className="text-sm text-gray-500 uppercase tracking-wider mb-2">Your Score</div>
-            <div 
-              className="text-4xl md:text-5xl font-bold text-yellow-400"
-              style={{ 
-                fontFamily: "'Press Start 2P', monospace",
-                textShadow: '0 0 20px rgba(250, 204, 21, 0.5)',
-              }}
-            >
+            <div className="text-sm text-gray-500 uppercase tracking-wider mb-2">
+              Your Score
+            </div>
+            <div className="text-4xl md:text-5xl font-bold text-yellow-400 font-arcade text-glow-yellow">
               {score.toLocaleString()}
             </div>
           </div>
@@ -175,8 +144,7 @@ export const StartScreen: React.FC<StartScreenProps> = ({
         <button
           onClick={onStart}
           className="neon-button mb-8 px-8 py-4 text-xl md:text-2xl rounded-lg
-                     text-white tracking-wider uppercase"
-          style={{ fontFamily: "'Press Start 2P', monospace" }}
+                     text-white tracking-wider uppercase font-arcade"
         >
           {gameOver || gameWon ? "Play Again" : "Start Game"}
         </button>
@@ -184,19 +152,10 @@ export const StartScreen: React.FC<StartScreenProps> = ({
         {/* High Scores */}
         {highScores.length > 0 && (
           <div className="w-full mb-8">
-            <h2 
-              className="text-lg font-bold text-blue-400 mb-4 text-center tracking-wider"
-              style={{ fontFamily: "'Press Start 2P', monospace" }}
-            >
+            <h2 className="text-lg font-bold text-blue-400 mb-4 text-center tracking-wider font-arcade">
               HIGH SCORES
             </h2>
-            <div 
-              className="rounded-lg p-4"
-              style={{
-                background: 'linear-gradient(180deg, rgba(27, 20, 100, 0.3) 0%, rgba(13, 13, 43, 0.3) 100%)',
-                border: '1px solid rgba(68, 68, 255, 0.3)',
-              }}
-            >
+            <div className="arcade-card-dark">
               <table className="w-full arcade-table">
                 <thead>
                   <tr className="text-gray-500 text-xs">
@@ -211,14 +170,22 @@ export const StartScreen: React.FC<StartScreenProps> = ({
                     <tr
                       key={highScore.timestamp}
                       className={`
-                        ${index === 0 ? 'text-yellow-400' : 'text-gray-300'}
-                        ${score === highScore.score && (gameOver || gameWon) ? 'bg-blue-900/30' : ''}
+                        ${index === 0 ? "text-yellow-400" : "text-gray-300"}
+                        ${
+                          score === highScore.score && (gameOver || gameWon)
+                            ? "bg-blue-900/30"
+                            : ""
+                        }
                       `}
                     >
                       <td className="py-2 px-2">{index + 1}</td>
-                      <td className="text-right px-2">{highScore.score.toLocaleString()}</td>
+                      <td className="text-right px-2">
+                        {highScore.score.toLocaleString()}
+                      </td>
                       <td className="text-right px-2">{highScore.level + 1}</td>
-                      <td className="text-right px-2">{formatDate(highScore.timestamp)}</td>
+                      <td className="text-right px-2">
+                        {formatDate(highScore.timestamp)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -228,52 +195,29 @@ export const StartScreen: React.FC<StartScreenProps> = ({
         )}
 
         {/* Instructions */}
-        <div 
-          className="text-center max-w-md"
-          style={{ fontFamily: "'VT323', monospace" }}
-        >
-          <h2 className="text-lg font-bold text-gray-400 mb-4 tracking-wider">HOW TO PLAY</h2>
+        <div className="text-center max-w-md">
+          <h2 className="text-lg font-bold text-gray-400 mb-4 tracking-wider">
+            HOW TO PLAY
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div 
-              className="rounded-lg p-4"
-              style={{
-                background: 'rgba(27, 20, 100, 0.2)',
-                border: '1px solid rgba(68, 68, 255, 0.2)',
-              }}
-            >
+            <div className="arcade-card">
               <div className="text-yellow-400 font-bold mb-2">🎮 Controls</div>
               <p className="text-gray-400">
                 <span className="hidden md:inline">Arrow keys or WASD</span>
                 <span className="md:hidden">Swipe in any direction</span>
               </p>
             </div>
-            <div 
-              className="rounded-lg p-4"
-              style={{
-                background: 'rgba(27, 20, 100, 0.2)',
-                border: '1px solid rgba(68, 68, 255, 0.2)',
-              }}
-            >
+            <div className="arcade-card">
               <div className="text-yellow-400 font-bold mb-2">🎯 Objective</div>
               <p className="text-gray-400">Eat all dots, avoid ghosts!</p>
             </div>
-            <div 
-              className="rounded-lg p-4"
-              style={{
-                background: 'rgba(27, 20, 100, 0.2)',
-                border: '1px solid rgba(68, 68, 255, 0.2)',
-              }}
-            >
-              <div className="text-yellow-400 font-bold mb-2">⚡ Power Pellets</div>
+            <div className="arcade-card">
+              <div className="text-yellow-400 font-bold mb-2">
+                ⚡ Power Pellets
+              </div>
               <p className="text-gray-400">Eat ghosts for bonus points!</p>
             </div>
-            <div 
-              className="rounded-lg p-4"
-              style={{
-                background: 'rgba(27, 20, 100, 0.2)',
-                border: '1px solid rgba(68, 68, 255, 0.2)',
-              }}
-            >
+            <div className="arcade-card">
               <div className="text-yellow-400 font-bold mb-2">🏆 Scoring</div>
               <p className="text-gray-400">Dots: 10 • Ghosts: 200+</p>
             </div>
@@ -282,15 +226,12 @@ export const StartScreen: React.FC<StartScreenProps> = ({
 
         {/* Footer */}
         <div className="mt-8 text-center text-gray-600 text-xs">
-          <p style={{ fontFamily: "'VT323', monospace" }}>
-            Open Source Pac-Man Clone
-          </p>
+          <p>Open Source Pac-Man Clone</p>
           <p className="mt-1 text-gray-700">
             Next.js • TypeScript • Tailwind CSS
           </p>
         </div>
       </div>
-
     </div>
   );
 };
