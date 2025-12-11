@@ -1,19 +1,36 @@
 import { useEffect, useCallback, useRef } from "react";
 import { useShallow } from "zustand/react/shallow";
-import { useGameStore } from "../stores/game-store";
+import { useGameStore, selectCanPlay } from "../stores/game-store";
 import { isValidMove, getNextPosition } from "../utils/gameUtils";
-import { LEVELS } from "../levels/gameLevels";
+import { getLayout } from "../levels/gameLevels";
 import { DIRECTIONS, TOUCH } from "../constants/gameConstants";
 import type { Direction } from "../types/types";
 
+// Static key-to-direction mapping (hoisted for performance)
+const KEY_DIRECTIONS: Readonly<Record<string, Direction>> = {
+  ArrowLeft: DIRECTIONS.LEFT,
+  a: DIRECTIONS.LEFT,
+  A: DIRECTIONS.LEFT,
+  ArrowRight: DIRECTIONS.RIGHT,
+  d: DIRECTIONS.RIGHT,
+  D: DIRECTIONS.RIGHT,
+  ArrowUp: DIRECTIONS.UP,
+  w: DIRECTIONS.UP,
+  W: DIRECTIONS.UP,
+  ArrowDown: DIRECTIONS.DOWN,
+  s: DIRECTIONS.DOWN,
+  S: DIRECTIONS.DOWN,
+} as const;
+
 export const useInput = () => {
-  const { isPlaying, isPaused, gameOver, gameWon, level, pacmanPos } =
+  const { canPlay, isPlaying, gameOver, gameWon, isPaused, level, pacmanPos } =
     useGameStore(
       useShallow((s) => ({
+        canPlay: selectCanPlay(s),
         isPlaying: s.gameState.isPlaying,
-        isPaused: s.isPaused,
         gameOver: s.gameState.gameOver,
         gameWon: s.gameState.gameWon,
+        isPaused: s.isPaused,
         level: s.gameState.level,
         pacmanPos: s.pacmanPos,
       }))
@@ -31,9 +48,9 @@ export const useInput = () => {
 
   const trySetDirection = useCallback(
     (newDir: Direction) => {
-      if (!isPlaying || gameOver || gameWon || isPaused) return;
+      if (!canPlay) return;
 
-      const layout = LEVELS[level]?.layout || LEVELS[0].layout;
+      const layout = getLayout(level);
       const nextPos = getNextPosition(pacmanPos, newDir);
 
       if (isValidMove(nextPos, layout)) {
@@ -42,16 +59,7 @@ export const useInput = () => {
         setNextDirection(newDir);
       }
     },
-    [
-      isPlaying,
-      isPaused,
-      gameOver,
-      gameWon,
-      level,
-      pacmanPos,
-      setDirection,
-      setNextDirection,
-    ]
+    [canPlay, level, pacmanPos, setDirection, setNextDirection]
   );
 
   const handleKeyDown = useCallback(
@@ -64,30 +72,15 @@ export const useInput = () => {
         return;
       }
 
-      if (!isPlaying || gameOver || gameWon || isPaused) return;
+      if (!canPlay) return;
 
-      const keyDirections: Record<string, Direction> = {
-        ArrowLeft: DIRECTIONS.LEFT,
-        a: DIRECTIONS.LEFT,
-        A: DIRECTIONS.LEFT,
-        ArrowRight: DIRECTIONS.RIGHT,
-        d: DIRECTIONS.RIGHT,
-        D: DIRECTIONS.RIGHT,
-        ArrowUp: DIRECTIONS.UP,
-        w: DIRECTIONS.UP,
-        W: DIRECTIONS.UP,
-        ArrowDown: DIRECTIONS.DOWN,
-        s: DIRECTIONS.DOWN,
-        S: DIRECTIONS.DOWN,
-      };
-
-      const newDirection = keyDirections[e.key];
+      const newDirection = KEY_DIRECTIONS[e.key];
       if (newDirection) {
         e.preventDefault();
         trySetDirection(newDirection);
       }
     },
-    [isPlaying, isPaused, gameOver, gameWon, togglePause, trySetDirection]
+    [canPlay, isPlaying, gameOver, gameWon, togglePause, trySetDirection]
   );
 
   const handleTouchStart = useCallback(
@@ -102,7 +95,7 @@ export const useInput = () => {
 
   const handleTouchMove = useCallback(
     (e: TouchEvent) => {
-      if (!touchStartRef.current || isPaused) return;
+      if (!touchStartRef.current || !canPlay) return;
 
       const touch = e.touches[0];
       const deltaX = touch.clientX - touchStartRef.current.x;

@@ -5,6 +5,7 @@ import {
   selectGameplay,
   selectEntities,
   selectActions,
+  selectCanPlay,
 } from "../stores/game-store";
 import { useSound } from "./useSound";
 import { findAtPosition } from "../utils/position";
@@ -14,13 +15,14 @@ import {
   MOUTH_ANIMATION_INTERVAL,
   LEVEL_TRANSITION_DELAY,
 } from "../constants/gameConstants";
-import { LEVELS } from "../levels/gameLevels";
+import { LEVEL_COUNT } from "../levels/gameLevels";
 
 export const useGameLoop = () => {
   // Batched state selectors
   const gameplay = useGameStore(useShallow(selectGameplay));
   const entities = useGameStore(useShallow(selectEntities));
   const actions = useGameStore(useShallow(selectActions));
+  const canPlay = useGameStore(selectCanPlay);
 
   const { playSound } = useSound();
 
@@ -33,10 +35,9 @@ export const useGameLoop = () => {
 
   const gameLoop = useCallback(
     (currentTime: number) => {
-      const { isPlaying, isPaused, isTransitioning, gameOver, gameWon } =
-        gameplay;
+      const { isTransitioning } = gameplay;
 
-      if (!isPlaying || gameOver || gameWon || isPaused || isTransitioning) {
+      if (!canPlay || isTransitioning) {
         animationFrameRef.current = requestAnimationFrame(gameLoop);
         return;
       }
@@ -74,17 +75,15 @@ export const useGameLoop = () => {
 
       animationFrameRef.current = requestAnimationFrame(gameLoop);
     },
-    [gameplay, actions]
+    [gameplay, actions, canPlay]
   );
 
   // Collision and collection effect
   useEffect(() => {
-    const { isPlaying, isPaused, isTransitioning, gameOver, gameWon, level } =
-      gameplay;
+    const { isTransitioning, level } = gameplay;
     const { pacmanPos, dots, powerPellets } = entities;
 
-    if (!isPlaying || gameOver || gameWon || isPaused || isTransitioning)
-      return;
+    if (!canPlay || isTransitioning) return;
     if (levelTransitionRef.current) return;
 
     // Check dot collection
@@ -128,7 +127,7 @@ export const useGameLoop = () => {
     ) {
       levelTransitionRef.current = true;
 
-      if (level === LEVELS.length - 1) {
+      if (level === LEVEL_COUNT - 1) {
         actions.updateGameState((prev) => ({
           ...prev,
           gameWon: true,
@@ -142,7 +141,7 @@ export const useGameLoop = () => {
         }, LEVEL_TRANSITION_DELAY);
       }
     }
-  }, [gameplay, entities, actions, playSound]);
+  }, [gameplay, entities, actions, playSound, canPlay]);
 
   // Start/stop game loop
   useEffect(() => {

@@ -8,9 +8,8 @@ import type {
 } from "../types/types";
 import { GhostMode } from "../types/types";
 import {
-  GHOST_COLORS,
+  GHOST_CONFIG,
   GHOST_NAMES,
-  GHOST_INITIAL_POSITIONS,
   DIRECTIONS,
   GHOST_FRIGHTENED_DURATION,
   GHOST_HOUSE_RELEASE_DELAY,
@@ -25,38 +24,6 @@ import {
   getPositionAhead,
 } from "./gameUtils";
 import { positionEquals } from "./position";
-
-/**
- * Ghost behavior configuration per ghost type
- */
-interface GhostBehaviorConfig {
-  releaseDelay: number;
-  speed: number;
-  scatterTarget: Position;
-}
-
-const GHOST_CONFIGS: Record<string, GhostBehaviorConfig> = {
-  [GHOST_NAMES.BLINKY]: {
-    releaseDelay: 0,
-    speed: 1,
-    scatterTarget: { x: 18, y: 0 },
-  },
-  [GHOST_NAMES.PINKY]: {
-    releaseDelay: 2000,
-    speed: 0.95,
-    scatterTarget: { x: 0, y: 0 },
-  },
-  [GHOST_NAMES.INKY]: {
-    releaseDelay: 4000,
-    speed: 0.9,
-    scatterTarget: { x: 18, y: 19 },
-  },
-  [GHOST_NAMES.CLYDE]: {
-    releaseDelay: 6000,
-    speed: 0.85,
-    scatterTarget: { x: 0, y: 19 },
-  },
-};
 
 /**
  * Get the target position for a ghost based on its personality and mode
@@ -86,7 +53,7 @@ const getGhostChaseTarget = (
       const distance = calculateDistance(ghost.position, pacmanPos);
       return distance > CLYDE_CHASE_DISTANCE
         ? pacmanPos
-        : GHOST_CONFIGS[GHOST_NAMES.CLYDE].scatterTarget;
+        : GHOST_CONFIG.CLYDE.scatterTarget;
     }
 
     default:
@@ -123,7 +90,7 @@ export const updateGhostPosition = (
       break;
 
     case GhostMode.SCATTER:
-      target = GHOST_CONFIGS[ghost.name]?.scatterTarget || { x: 0, y: 0 };
+      target = GHOST_CONFIG[ghost.name]?.scatterTarget ?? { x: 0, y: 0 };
       break;
 
     case GhostMode.FRIGHTENED:
@@ -181,24 +148,22 @@ export const updateGhostPosition = (
 /**
  * Create initial ghost array
  */
-export const createInitialGhosts = (): Ghost[] => {
-  const ghostNames = Object.values(GHOST_NAMES) as Array<
-    keyof typeof GHOST_NAMES
-  >;
-
-  return ghostNames.map((name, index) => ({
-    position: { ...GHOST_INITIAL_POSITIONS[index] },
-    previousPosition: { ...GHOST_INITIAL_POSITIONS[index] },
-    color: GHOST_COLORS[name as keyof typeof GHOST_COLORS],
-    name: name as Ghost["name"],
-    mode: GhostMode.HOUSE,
-    speed: GHOST_CONFIGS[name]?.speed || 1,
-    targetPosition: { ...GHOST_INITIAL_POSITIONS[index] },
-    direction: DIRECTIONS.LEFT,
-    isMoving: false,
-    houseTimeLeft: GHOST_CONFIGS[name]?.releaseDelay || 0,
-  }));
-};
+export const createInitialGhosts = (): Ghost[] =>
+  Object.values(GHOST_NAMES).map((name) => {
+    const config = GHOST_CONFIG[name];
+    return {
+      position: { ...config.initialPosition },
+      previousPosition: { ...config.initialPosition },
+      color: config.color,
+      name: name as Ghost["name"],
+      mode: GhostMode.HOUSE,
+      speed: config.speed,
+      targetPosition: { ...config.initialPosition },
+      direction: DIRECTIONS.LEFT,
+      isMoving: false,
+      houseTimeLeft: config.releaseDelay,
+    };
+  });
 
 /**
  * Set all ghosts to frightened mode

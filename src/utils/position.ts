@@ -22,11 +22,3 @@ export const findAtPosition = <T extends Position>(
   items: T[],
   pos: Position
 ): T | undefined => items.find((item) => positionEquals(item, pos));
-
-/**
- * Check if a position exists in an array
- */
-export const hasPosition = <T extends Position>(
-  items: T[],
-  pos: Position
-): boolean => items.some((item) => positionEquals(item, pos));

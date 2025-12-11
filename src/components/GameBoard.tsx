@@ -16,7 +16,6 @@ interface GameBoardProps {
   powerPellets: Position[];
   ghosts: GhostType[];
   pacmanPos: Position;
-  pacmanPrevPos?: Position;
   direction: Direction;
   mouthOpen: boolean;
   gameOver: boolean;
@@ -32,7 +31,6 @@ export const GameBoard: React.FC<GameBoardProps> = memo(
     powerPellets,
     ghosts,
     pacmanPos,
-    pacmanPrevPos,
     direction,
     mouthOpen,
     gameOver,
@@ -73,7 +71,6 @@ export const GameBoard: React.FC<GameBoardProps> = memo(
           <EntitiesLayer
             ghosts={ghosts}
             pacmanPos={pacmanPos}
-            pacmanPrevPos={pacmanPrevPos}
             direction={direction}
             mouthOpen={mouthOpen}
             gameOver={gameOver}

@@ -5,18 +5,18 @@ import { CELL_SIZE } from "../constants/gameConstants";
 
 interface PacmanProps {
   position: Position;
-  prevPosition?: Position;
   direction: Direction;
   mouthOpen: boolean;
   isPowerMode?: boolean;
 }
 
-const DIRECTION_ROTATION: Record<Direction, number> = {
+// Static direction-to-rotation mapping
+const DIRECTION_ROTATION: Readonly<Record<Direction, number>> = {
   right: 0,
   down: 90,
   left: 180,
   up: 270,
-};
+} as const;
 
 export const Pacman: React.FC<PacmanProps> = memo(
   ({ position, direction, mouthOpen, isPowerMode = false }) => {

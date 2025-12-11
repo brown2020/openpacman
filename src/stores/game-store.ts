@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { LEVELS } from "../levels/gameLevels";
+import { LEVELS, getLayout } from "../levels/gameLevels";
 import {
   getInitialDots,
   isValidMove,
@@ -29,13 +29,7 @@ import type {
   GameState,
   Ghost,
   Position,
-  CellType,
-  Matrix,
 } from "../types/types";
-
-// Helper to get current level layout
-const getLayout = (level: number): Matrix<CellType> =>
-  LEVELS[level]?.layout || LEVELS[0].layout;
 
 export interface GameStoreState {
   // Game state
@@ -158,21 +152,36 @@ export const useGameStore = create<GameStoreState>()(
         const { pacmanPos, direction, nextDirection, gameState } = get();
         const layout = getLayout(gameState.level);
 
-        // Try next direction first if set
+        // Try queued direction first if set
         if (nextDirection) {
-          const nextPos = getNextPosition(pacmanPos, nextDirection);
-          if (isValidMove(nextPos, layout)) {
+          const turnPos = getNextPosition(pacmanPos, nextDirection);
+          if (isValidMove(turnPos, layout)) {
             set((s) => ({
               pacmanPrevPos: s.pacmanPos,
-              pacmanPos: nextPos,
+              pacmanPos: turnPos,
               direction: nextDirection,
               nextDirection: null,
             }));
             return true;
           }
+
+          // Pre-turn: Check if turn would be valid after moving forward
+          // This allows pressing direction slightly early
+          const forwardPos = getNextPosition(pacmanPos, direction);
+          if (isValidMove(forwardPos, layout)) {
+            const turnFromForward = getNextPosition(forwardPos, nextDirection);
+            if (isValidMove(turnFromForward, layout)) {
+              // Move forward - turn will execute next tick
+              set((s) => ({
+                pacmanPrevPos: s.pacmanPos,
+                pacmanPos: forwardPos,
+              }));
+              return true;
+            }
+          }
         }
 
-        // Otherwise continue in current direction
+        // Continue in current direction
         const newPos = getNextPosition(pacmanPos, direction);
         if (isValidMove(newPos, layout)) {
           set((s) => ({ pacmanPrevPos: s.pacmanPos, pacmanPos: newPos }));
@@ -217,7 +226,6 @@ export const useGameStore = create<GameStoreState>()(
         const newScore: GameScore = {
           score: gameState.score,
           level: gameState.level,
-          date: Date.now(),
           timestamp: Date.now(),
           completion: ((gameState.level + 1) / LEVELS.length) * 100,
           ghostsEaten: gameState.ghostsEaten,
@@ -415,3 +423,12 @@ export const selectActions = (s: GameStoreState) => ({
   startGame: s.startGame,
   tick: s.tick,
 });
+
+/**
+ * Check if game is in a playable state (not paused, not over, not won)
+ */
+export const selectCanPlay = (s: GameStoreState): boolean =>
+  s.gameState.isPlaying &&
+  !s.gameState.gameOver &&
+  !s.gameState.gameWon &&
+  !s.isPaused;

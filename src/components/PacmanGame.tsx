@@ -3,7 +3,7 @@ import React, { useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { GameBoard } from "./GameBoard";
 import { StartScreen } from "./StartScreen";
-import { LEVELS } from "../levels/gameLevels";
+import { getLayout } from "../levels/gameLevels";
 import { useGameStore } from "../stores/game-store";
 import { useGameLoop } from "../hooks/useGameLoop";
 import { useInput } from "../hooks/useInput";
@@ -13,7 +13,6 @@ export const PacmanGame: React.FC = () => {
   const {
     gameState,
     pacmanPos,
-    pacmanPrevPos,
     direction,
     dots,
     powerPellets,
@@ -25,7 +24,6 @@ export const PacmanGame: React.FC = () => {
     useShallow((s) => ({
       gameState: s.gameState,
       pacmanPos: s.pacmanPos,
-      pacmanPrevPos: s.pacmanPrevPos,
       direction: s.direction,
       dots: s.dots,
       powerPellets: s.powerPellets,
@@ -50,7 +48,7 @@ export const PacmanGame: React.FC = () => {
 
   // Memoize current level
   const currentLevel = useMemo(
-    () => LEVELS[gameState.level]?.layout || LEVELS[0].layout,
+    () => getLayout(gameState.level),
     [gameState.level]
   );
 
@@ -150,7 +148,6 @@ export const PacmanGame: React.FC = () => {
         powerPellets={powerPellets}
         ghosts={ghosts}
         pacmanPos={pacmanPos}
-        pacmanPrevPos={pacmanPrevPos}
         direction={direction}
         mouthOpen={mouthOpen}
         gameOver={gameState.gameOver}

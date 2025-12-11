@@ -1,6 +1,6 @@
 // components/Ghost.tsx
 import React, { memo, useMemo } from "react";
-import type { Position, Direction } from "../types/types";
+import type { Position } from "../types/types";
 import { GhostMode } from "../types/types";
 import {
   CELL_SIZE,
@@ -8,12 +8,37 @@ import {
   GHOST_FRIGHTENED_FLASH_THRESHOLD,
 } from "../constants/gameConstants";
 
+// Static ghost SVG path (computed once at module load)
+const GHOST_SVG_PATH = (() => {
+  const segments = 4;
+  const segmentWidth = CELL_SIZE / segments;
+  const bodyHeight = CELL_SIZE * 0.75;
+  const tentacleHeight = CELL_SIZE * 0.25;
+  const cornerRadius = CELL_SIZE * 0.4;
+
+  let path = `M 0 ${bodyHeight}`;
+
+  for (let i = 0; i < segments; i++) {
+    const x1 = (i + 0.5) * segmentWidth;
+    const x2 = (i + 1) * segmentWidth;
+    const waveY = CELL_SIZE - (i % 2 === 0 ? 0 : tentacleHeight * 0.6);
+    path += ` Q ${x1} ${CELL_SIZE} ${x2} ${waveY}`;
+  }
+
+  path += ` L ${CELL_SIZE} ${cornerRadius}`;
+  path += ` Q ${CELL_SIZE} 0 ${CELL_SIZE - cornerRadius} 0`;
+  path += ` L ${cornerRadius} 0`;
+  path += ` Q 0 0 0 ${cornerRadius}`;
+  path += " Z";
+
+  return path;
+})();
+
 interface GhostProps {
   position: Position;
   color: string;
   mode?: GhostMode;
   frightenedTimeLeft?: number;
-  direction?: Direction;
   pacmanPos?: Position;
 }
 
@@ -51,31 +76,6 @@ export const Ghost: React.FC<GhostProps> = memo(
       };
     }, [pacmanPos, position.x, position.y]);
 
-    const ghostPath = useMemo(() => {
-      const segments = 4;
-      const segmentWidth = CELL_SIZE / segments;
-      const bodyHeight = CELL_SIZE * 0.75;
-      const tentacleHeight = CELL_SIZE * 0.25;
-      const cornerRadius = CELL_SIZE * 0.4;
-
-      let path = `M 0 ${bodyHeight}`;
-
-      for (let i = 0; i < segments; i++) {
-        const x1 = (i + 0.5) * segmentWidth;
-        const x2 = (i + 1) * segmentWidth;
-        const waveY = CELL_SIZE - (i % 2 === 0 ? 0 : tentacleHeight * 0.6);
-        path += ` Q ${x1} ${CELL_SIZE} ${x2} ${waveY}`;
-      }
-
-      path += ` L ${CELL_SIZE} ${cornerRadius}`;
-      path += ` Q ${CELL_SIZE} 0 ${CELL_SIZE - cornerRadius} 0`;
-      path += ` L ${cornerRadius} 0`;
-      path += ` Q 0 0 0 ${cornerRadius}`;
-      path += " Z";
-
-      return path;
-    }, []);
-
     // Generate stable gradient ID based on ghost name/color
     const gradientId = `ghostGradient-${color.replace("#", "")}`;
 
@@ -105,7 +105,7 @@ export const Ghost: React.FC<GhostProps> = memo(
 
           {/* Ghost body glow */}
           <path
-            d={ghostPath}
+            d={GHOST_SVG_PATH}
             fill={currentColor}
             opacity="0.3"
             style={{ filter: "blur(4px)" }}
@@ -113,7 +113,7 @@ export const Ghost: React.FC<GhostProps> = memo(
 
           {/* Main ghost body */}
           <path
-            d={ghostPath}
+            d={GHOST_SVG_PATH}
             fill={`url(#${gradientId})`}
             className={isFlashing ? "ghost-frightened-flash" : ""}
           />

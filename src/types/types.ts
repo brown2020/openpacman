@@ -20,7 +20,6 @@ export interface Position {
 export interface GameScore {
   score: number;
   level: number;
-  date: number;
   timestamp: number;
   completion: number;
   ghostsEaten: number;
@@ -70,7 +69,6 @@ export interface GameState {
 export interface LevelConfig {
   layout: CellType[][];
   ghostSpeed: number;
-  difficulty: number;
 }
 
 // Utility type for maze matrices

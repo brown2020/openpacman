@@ -42,31 +42,31 @@ export const calculateDistance = (pos1: Position, pos2: Position): number =>
   Math.sqrt(Math.pow(pos2.x - pos1.x, 2) + Math.pow(pos2.y - pos1.y, 2));
 
 /**
- * Get all dot positions from a level layout
+ * Get all positions of a specific cell type from a level layout
  */
-export const getInitialDots = (level: Matrix<CellType>): Position[] => {
-  const dots: Position[] = [];
+const getPositionsByCellType = (
+  level: Matrix<CellType>,
+  cellType: CellType
+): Position[] => {
+  const positions: Position[] = [];
   for (let y = 0; y < level.length; y++) {
     for (let x = 0; x < level[0].length; x++) {
-      if (level[y][x] === CELL_TYPES.DOT) {
-        dots.push({ x, y });
+      if (level[y][x] === cellType) {
+        positions.push({ x, y });
       }
     }
   }
-  return dots;
+  return positions;
 };
+
+/**
+ * Get all dot positions from a level layout
+ */
+export const getInitialDots = (level: Matrix<CellType>): Position[] =>
+  getPositionsByCellType(level, CELL_TYPES.DOT);
 
 /**
  * Get all power pellet positions from a level layout
  */
-export const getPowerPellets = (level: Matrix<CellType>): Position[] => {
-  const pellets: Position[] = [];
-  for (let y = 0; y < level.length; y++) {
-    for (let x = 0; x < level[0].length; x++) {
-      if (level[y][x] === CELL_TYPES.POWER_PELLET) {
-        pellets.push({ x, y });
-      }
-    }
-  }
-  return pellets;
-};
+export const getPowerPellets = (level: Matrix<CellType>): Position[] =>
+  getPositionsByCellType(level, CELL_TYPES.POWER_PELLET);

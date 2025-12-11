@@ -50,29 +50,16 @@ const LEVEL_2: CellType[][] = [
   [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
 ];
 
-// Level configurations - simplified, remove computed fields
+// Level configurations
 export const LEVELS: LevelConfig[] = [
-  { layout: LEVEL_1, ghostSpeed: 1, difficulty: 1 },
-  { layout: LEVEL_2, ghostSpeed: 1.2, difficulty: 2 },
+  { layout: LEVEL_1, ghostSpeed: 1 },
+  { layout: LEVEL_2, ghostSpeed: 1.2 },
 ];
 
 export const LEVEL_COUNT = LEVELS.length;
 
-export const getLevelConfig = (levelIndex: number): LevelConfig => {
-  if (levelIndex < 0 || levelIndex >= LEVELS.length) {
-    throw new Error(`Invalid level index: ${levelIndex}`);
-  }
-  return LEVELS[levelIndex];
-};
-
-// Count dots in a layout (computed at runtime when needed)
-export const countDots = (layout: CellType[][]): number =>
-  layout.reduce(
-    (count, row) =>
-      count + row.filter((cell) => cell === CELL_TYPES.DOT).length,
-    0
-  );
-
-// Get total dots across all levels
-export const getTotalDotsInGame = (): number =>
-  LEVELS.reduce((total, level) => total + countDots(level.layout), 0);
+/**
+ * Get layout for a level with fallback to first level
+ */
+export const getLayout = (level: number): CellType[][] =>
+  LEVELS[level]?.layout ?? LEVELS[0].layout;

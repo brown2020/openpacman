@@ -43,6 +43,23 @@ export class SoundManager {
     return true;
   }
 
+  /**
+   * Helper to run audio operations with guaranteed context
+   */
+  private withAudioContext(
+    fn: (ctx: AudioContext, gain: GainNode) => void
+  ): void {
+    if (
+      !this.ensureAudioContext() ||
+      this.isMuted ||
+      !this.audioContext ||
+      !this.masterGain
+    ) {
+      return;
+    }
+    fn(this.audioContext, this.masterGain);
+  }
+
   public toggleMute(): boolean {
     this.isMuted = !this.isMuted;
     if (this.masterGain) {
@@ -57,35 +74,26 @@ export class SoundManager {
     type: OscillatorType = "sine",
     volumeMultiplier = 1
   ): void {
-    if (
-      !this.ensureAudioContext() ||
-      this.isMuted ||
-      !this.audioContext ||
-      !this.masterGain
-    )
-      return;
+    this.withAudioContext((ctx, masterGain) => {
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
 
-    const oscillator = this.audioContext.createOscillator();
-    const gainNode = this.audioContext.createGain();
+      oscillator.connect(gainNode);
+      gainNode.connect(masterGain);
 
-    oscillator.connect(gainNode);
-    gainNode.connect(this.masterGain);
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(frequency, ctx.currentTime);
 
-    oscillator.type = type;
-    oscillator.frequency.setValueAtTime(
-      frequency,
-      this.audioContext.currentTime
-    );
+      const volume = SOUND.VOLUME.EFFECTS * volumeMultiplier;
+      gainNode.gain.setValueAtTime(volume, ctx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(
+        0.001,
+        ctx.currentTime + duration
+      );
 
-    const volume = SOUND.VOLUME.EFFECTS * volumeMultiplier;
-    gainNode.gain.setValueAtTime(volume, this.audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(
-      0.001,
-      this.audioContext.currentTime + duration
-    );
-
-    oscillator.start();
-    oscillator.stop(this.audioContext.currentTime + duration);
+      oscillator.start();
+      oscillator.stop(ctx.currentTime + duration);
+    });
   }
 
   public playDotSound(): void {
@@ -98,123 +106,89 @@ export class SoundManager {
   }
 
   public playDeathSound(): void {
-    if (
-      !this.ensureAudioContext() ||
-      this.isMuted ||
-      !this.audioContext ||
-      !this.masterGain
-    )
-      return;
+    this.withAudioContext((ctx, masterGain) => {
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
 
-    const oscillator = this.audioContext.createOscillator();
-    const gainNode = this.audioContext.createGain();
+      oscillator.connect(gainNode);
+      gainNode.connect(masterGain);
 
-    oscillator.connect(gainNode);
-    gainNode.connect(this.masterGain);
+      oscillator.type = "sawtooth";
+      oscillator.frequency.setValueAtTime(
+        SOUND.EFFECTS.DEATH_START_FREQUENCY,
+        ctx.currentTime
+      );
+      oscillator.frequency.exponentialRampToValueAtTime(
+        SOUND.EFFECTS.DEATH_END_FREQUENCY,
+        ctx.currentTime + SOUND.EFFECTS.DEATH_DURATION
+      );
 
-    oscillator.type = "sawtooth";
-    oscillator.frequency.setValueAtTime(
-      SOUND.EFFECTS.DEATH_START_FREQUENCY,
-      this.audioContext.currentTime
-    );
-    oscillator.frequency.exponentialRampToValueAtTime(
-      SOUND.EFFECTS.DEATH_END_FREQUENCY,
-      this.audioContext.currentTime + SOUND.EFFECTS.DEATH_DURATION
-    );
+      gainNode.gain.setValueAtTime(SOUND.VOLUME.EFFECTS * 0.5, ctx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(
+        0.001,
+        ctx.currentTime + SOUND.EFFECTS.DEATH_DURATION
+      );
 
-    gainNode.gain.setValueAtTime(
-      SOUND.VOLUME.EFFECTS * 0.5,
-      this.audioContext.currentTime
-    );
-    gainNode.gain.exponentialRampToValueAtTime(
-      0.001,
-      this.audioContext.currentTime + SOUND.EFFECTS.DEATH_DURATION
-    );
-
-    oscillator.start();
-    oscillator.stop(
-      this.audioContext.currentTime + SOUND.EFFECTS.DEATH_DURATION
-    );
+      oscillator.start();
+      oscillator.stop(ctx.currentTime + SOUND.EFFECTS.DEATH_DURATION);
+    });
   }
 
   public playPowerPelletSound(): void {
-    if (
-      !this.ensureAudioContext() ||
-      this.isMuted ||
-      !this.audioContext ||
-      !this.masterGain
-    )
-      return;
+    this.withAudioContext((ctx, masterGain) => {
+      const frequencies = [262, 330, 392, 523];
+      const noteDuration = 0.08;
 
-    const frequencies = [262, 330, 392, 523];
-    const noteDuration = 0.08;
+      frequencies.forEach((freq, i) => {
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
 
-    frequencies.forEach((freq, i) => {
-      const oscillator = this.audioContext!.createOscillator();
-      const gainNode = this.audioContext!.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(masterGain);
 
-      oscillator.connect(gainNode);
-      gainNode.connect(this.masterGain!);
+        oscillator.type = "square";
+        oscillator.frequency.setValueAtTime(
+          freq,
+          ctx.currentTime + i * noteDuration
+        );
 
-      oscillator.type = "square";
-      oscillator.frequency.setValueAtTime(
-        freq,
-        this.audioContext!.currentTime + i * noteDuration
-      );
+        gainNode.gain.setValueAtTime(0, ctx.currentTime + i * noteDuration);
+        gainNode.gain.linearRampToValueAtTime(
+          SOUND.VOLUME.EFFECTS * 0.4,
+          ctx.currentTime + i * noteDuration + 0.01
+        );
+        gainNode.gain.exponentialRampToValueAtTime(
+          0.001,
+          ctx.currentTime + (i + 1) * noteDuration
+        );
 
-      gainNode.gain.setValueAtTime(
-        0,
-        this.audioContext!.currentTime + i * noteDuration
-      );
-      gainNode.gain.linearRampToValueAtTime(
-        SOUND.VOLUME.EFFECTS * 0.4,
-        this.audioContext!.currentTime + i * noteDuration + 0.01
-      );
-      gainNode.gain.exponentialRampToValueAtTime(
-        0.001,
-        this.audioContext!.currentTime + (i + 1) * noteDuration
-      );
-
-      oscillator.start(this.audioContext!.currentTime + i * noteDuration);
-      oscillator.stop(
-        this.audioContext!.currentTime + (i + 1) * noteDuration + 0.05
-      );
+        oscillator.start(ctx.currentTime + i * noteDuration);
+        oscillator.stop(ctx.currentTime + (i + 1) * noteDuration + 0.05);
+      });
     });
   }
 
   public playGhostEatSound(): void {
-    if (
-      !this.ensureAudioContext() ||
-      this.isMuted ||
-      !this.audioContext ||
-      !this.masterGain
-    )
-      return;
+    this.withAudioContext((ctx, masterGain) => {
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
 
-    const oscillator = this.audioContext.createOscillator();
-    const gainNode = this.audioContext.createGain();
+      oscillator.connect(gainNode);
+      gainNode.connect(masterGain);
 
-    oscillator.connect(gainNode);
-    gainNode.connect(this.masterGain);
+      oscillator.type = "square";
+      oscillator.frequency.setValueAtTime(100, ctx.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(
+        800,
+        ctx.currentTime + 0.15
+      );
 
-    oscillator.type = "square";
-    oscillator.frequency.setValueAtTime(100, this.audioContext.currentTime);
-    oscillator.frequency.exponentialRampToValueAtTime(
-      800,
-      this.audioContext.currentTime + 0.15
-    );
+      gainNode.gain.setValueAtTime(SOUND.VOLUME.EFFECTS * 0.4, ctx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
 
-    gainNode.gain.setValueAtTime(
-      SOUND.VOLUME.EFFECTS * 0.4,
-      this.audioContext.currentTime
-    );
-    gainNode.gain.exponentialRampToValueAtTime(
-      0.001,
-      this.audioContext.currentTime + 0.2
-    );
-
-    oscillator.start();
-    oscillator.stop(this.audioContext.currentTime + 0.2);
+      oscillator.start();
+      oscillator.stop(ctx.currentTime + 0.2);
+    });
   }
 
   public cleanup(): void {
