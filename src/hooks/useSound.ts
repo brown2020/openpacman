@@ -8,42 +8,31 @@ export const useSound = () => {
   const isMutedRef = useRef(false);
 
   useEffect(() => {
-    // Initialize sound manager only on client side
     if (typeof window !== "undefined") {
       soundManagerRef.current = new SoundManager();
     }
 
     return () => {
-      if (soundManagerRef.current) {
-        soundManagerRef.current.cleanup();
-      }
+      soundManagerRef.current?.cleanup();
     };
   }, []);
 
   const playSound = useCallback((effect: SoundEffect) => {
     if (!soundManagerRef.current || isMutedRef.current) return;
 
-    switch (effect) {
-      case "dot":
-        soundManagerRef.current.playDotSound();
-        break;
-      case "death":
-        soundManagerRef.current.playDeathSound();
-        break;
-      case "powerPellet":
-        soundManagerRef.current.playPowerPelletSound();
-        break;
-      case "eatGhost":
-        soundManagerRef.current.playGhostEatSound();
-        break;
-    }
+    const sounds: Record<SoundEffect, () => void> = {
+      dot: () => soundManagerRef.current?.playDotSound(),
+      death: () => soundManagerRef.current?.playDeathSound(),
+      powerPellet: () => soundManagerRef.current?.playPowerPelletSound(),
+      eatGhost: () => soundManagerRef.current?.playGhostEatSound(),
+    };
+
+    sounds[effect]?.();
   }, []);
 
   const toggleMute = useCallback(() => {
     isMutedRef.current = !isMutedRef.current;
-    if (soundManagerRef.current) {
-      soundManagerRef.current.toggleMute();
-    }
+    soundManagerRef.current?.toggleMute();
     return isMutedRef.current;
   }, []);
 

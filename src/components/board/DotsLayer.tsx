@@ -1,5 +1,5 @@
 import React, { memo, useMemo } from "react";
-import { Position } from "../../types/types";
+import type { Position } from "../../types/types";
 import { CELL_SIZE } from "../../constants/gameConstants";
 
 interface DotsLayerProps {
@@ -15,7 +15,8 @@ const Dot: React.FC<{ position: Position }> = memo(({ position }) => (
       height: 6,
       left: position.x * CELL_SIZE + CELL_SIZE / 2 - 3,
       top: position.y * CELL_SIZE + CELL_SIZE / 2 - 3,
-      background: 'radial-gradient(circle at 30% 30%, #FFFFFF 0%, #FFB897 50%, #FF8844 100%)',
+      background:
+        "radial-gradient(circle at 30% 30%, #FFFFFF 0%, #FFB897 50%, #FF8844 100%)",
     }}
   />
 ));
@@ -30,36 +31,42 @@ const PowerPellet: React.FC<{ position: Position }> = memo(({ position }) => (
       height: 14,
       left: position.x * CELL_SIZE + CELL_SIZE / 2 - 7,
       top: position.y * CELL_SIZE + CELL_SIZE / 2 - 7,
-      background: 'radial-gradient(circle at 30% 30%, #FFFFFF 0%, #FFB74D 40%, #FF6B00 100%)',
+      background:
+        "radial-gradient(circle at 30% 30%, #FFFFFF 0%, #FFB74D 40%, #FF6B00 100%)",
     }}
   />
 ));
 
 PowerPellet.displayName = "PowerPellet";
 
-export const DotsLayer: React.FC<DotsLayerProps> = memo(({ dots, powerPellets = [] }) => {
-  // Memoize dot elements
-  const dotElements = useMemo(() => 
-    dots.map((dot) => (
-      <Dot key={`dot-${dot.x}-${dot.y}`} position={dot} />
-    )),
-    [dots]
-  );
+export const DotsLayer: React.FC<DotsLayerProps> = memo(
+  ({ dots, powerPellets = [] }) => {
+    // Memoize dot elements
+    const dotElements = useMemo(
+      () =>
+        dots.map((dot) => <Dot key={`dot-${dot.x}-${dot.y}`} position={dot} />),
+      [dots]
+    );
 
-  // Memoize power pellet elements
-  const pelletElements = useMemo(() =>
-    powerPellets.map((pellet) => (
-      <PowerPellet key={`pellet-${pellet.x}-${pellet.y}`} position={pellet} />
-    )),
-    [powerPellets]
-  );
+    // Memoize power pellet elements
+    const pelletElements = useMemo(
+      () =>
+        powerPellets.map((pellet) => (
+          <PowerPellet
+            key={`pellet-${pellet.x}-${pellet.y}`}
+            position={pellet}
+          />
+        )),
+      [powerPellets]
+    );
 
-  return (
-    <>
-      {dotElements}
-      {pelletElements}
-    </>
-  );
-});
+    return (
+      <>
+        {dotElements}
+        {pelletElements}
+      </>
+    );
+  }
+);
 
 DotsLayer.displayName = "DotsLayer";

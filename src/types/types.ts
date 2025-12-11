@@ -1,36 +1,29 @@
 // types/types.ts
 import {
-  GAME_STATES,
   DIRECTIONS,
   CELL_TYPES,
   GHOST_NAMES,
 } from "../constants/gameConstants";
 
-// Basic types
-export type MazeCell = (typeof CELL_TYPES)[keyof typeof CELL_TYPES];
-export type CellType = MazeCell;
+// Basic types derived from constants
+export type CellType = (typeof CELL_TYPES)[keyof typeof CELL_TYPES];
 export type Direction = (typeof DIRECTIONS)[keyof typeof DIRECTIONS];
-export type GameStateType = (typeof GAME_STATES)[keyof typeof GAME_STATES];
 export type GhostName = (typeof GHOST_NAMES)[keyof typeof GHOST_NAMES];
-
-// Score types
-export interface ScoreEntry {
-  score: number;
-  level: number;
-  date: number;
-  playerName?: string;
-  completion: number;
-  ghostsEaten: number;
-}
-
-export interface GameScore extends ScoreEntry {
-  timestamp: number;
-}
 
 // Position
 export interface Position {
   x: number;
   y: number;
+}
+
+// High Score Entry
+export interface GameScore {
+  score: number;
+  level: number;
+  date: number;
+  timestamp: number;
+  completion: number;
+  ghostsEaten: number;
 }
 
 // Ghost Modes
@@ -42,21 +35,22 @@ export enum GhostMode {
   HOUSE = "HOUSE",
 }
 
-// Entity interfaces
+// Ghost entity
 export interface Ghost {
   position: Position;
+  previousPosition: Position;
   color: string;
   name: GhostName;
   mode: GhostMode;
   speed: number;
   targetPosition: Position;
-  previousPosition: Position;
   direction: Direction;
   isMoving: boolean;
   frightenedTimeLeft?: number;
   houseTimeLeft?: number;
 }
 
+// Game State
 export interface GameState {
   isPlaying: boolean;
   gameOver: boolean;
@@ -65,32 +59,19 @@ export interface GameState {
   score: number;
   highScore: number;
   lives: number;
-  gameStateType: GameStateType;
   powerPelletActive: boolean;
+  powerPelletTimeRemaining: number;
   dotsEaten: number;
   totalDots: number;
   ghostsEaten: number;
 }
 
+// Level Configuration
 export interface LevelConfig {
-  layout: MazeCell[][];
+  layout: CellType[][];
   ghostSpeed: number;
-  dotCount: number;
-  powerPellets: Position[];
   difficulty: number;
 }
 
-// Collision detection
-export interface Hitbox {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
-export interface GameEntity {
-  position: Position;
-}
-
-// Utility types
+// Utility type for maze matrices
 export type Matrix<T> = T[][];

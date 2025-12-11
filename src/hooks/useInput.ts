@@ -1,4 +1,5 @@
 import { useEffect, useCallback, useRef } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { useGameStore } from "../stores/game-store";
 import { isValidMove, getNextPosition } from "../utils/gameUtils";
 import { LEVELS } from "../levels/gameLevels";
@@ -6,131 +7,136 @@ import { DIRECTIONS, TOUCH } from "../constants/gameConstants";
 import type { Direction } from "../types/types";
 
 export const useInput = () => {
-  const isPlaying = useGameStore((s) => s.gameState.isPlaying);
-  const isPaused = useGameStore((s) => s.isPaused);
-  const gameOver = useGameStore((s) => s.gameState.gameOver);
-  const gameWon = useGameStore((s) => s.gameState.gameWon);
-  const level = useGameStore((s) => s.gameState.level);
-  const pacmanPos = useGameStore((s) => s.pacmanPos);
-  const direction = useGameStore((s) => s.direction);
+  const { isPlaying, isPaused, gameOver, gameWon, level, pacmanPos } =
+    useGameStore(
+      useShallow((s) => ({
+        isPlaying: s.gameState.isPlaying,
+        isPaused: s.isPaused,
+        gameOver: s.gameState.gameOver,
+        gameWon: s.gameState.gameWon,
+        level: s.gameState.level,
+        pacmanPos: s.pacmanPos,
+      }))
+    );
 
-  const setDirection = useGameStore((s) => s.setDirection);
-  const setNextDirection = useGameStore((s) => s.setNextDirection);
-  const togglePause = useGameStore((s) => s.togglePause);
+  const { setDirection, setNextDirection, togglePause } = useGameStore(
+    useShallow((s) => ({
+      setDirection: s.setDirection,
+      setNextDirection: s.setNextDirection,
+      togglePause: s.togglePause,
+    }))
+  );
 
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
-  const trySetDirection = useCallback((newDir: Direction) => {
-    if (!isPlaying || gameOver || gameWon || isPaused) return;
+  const trySetDirection = useCallback(
+    (newDir: Direction) => {
+      if (!isPlaying || gameOver || gameWon || isPaused) return;
 
-    const layout = LEVELS[level]?.layout || LEVELS[0].layout;
-    const nextPos = getNextPosition(pacmanPos, newDir);
+      const layout = LEVELS[level]?.layout || LEVELS[0].layout;
+      const nextPos = getNextPosition(pacmanPos, newDir);
 
-    // If the move is immediately valid, set it as current direction
-    if (isValidMove(nextPos, layout)) {
-      setDirection(newDir);
-    } else {
-      // Queue it as next direction to try
-      setNextDirection(newDir);
-    }
-  }, [isPlaying, isPaused, gameOver, gameWon, level, pacmanPos, setDirection, setNextDirection]);
-
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    // Handle pause with Escape or P
-    if (e.key === "Escape" || e.key === "p" || e.key === "P") {
-      if (isPlaying && !gameOver && !gameWon) {
-        e.preventDefault();
-        togglePause();
+      if (isValidMove(nextPos, layout)) {
+        setDirection(newDir);
+      } else {
+        setNextDirection(newDir);
       }
-      return;
-    }
+    },
+    [
+      isPlaying,
+      isPaused,
+      gameOver,
+      gameWon,
+      level,
+      pacmanPos,
+      setDirection,
+      setNextDirection,
+    ]
+  );
 
-    if (!isPlaying || gameOver || gameWon || isPaused) return;
-
-    let newDirection: Direction | null = null;
-
-    switch (e.key) {
-      case "ArrowLeft":
-      case "a":
-      case "A":
-        newDirection = DIRECTIONS.LEFT;
-        break;
-      case "ArrowRight":
-      case "d":
-      case "D":
-        newDirection = DIRECTIONS.RIGHT;
-        break;
-      case "ArrowUp":
-      case "w":
-      case "W":
-        newDirection = DIRECTIONS.UP;
-        break;
-      case "ArrowDown":
-      case "s":
-      case "S":
-        newDirection = DIRECTIONS.DOWN;
-        break;
-      default:
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape" || e.key === "p" || e.key === "P") {
+        if (isPlaying && !gameOver && !gameWon) {
+          e.preventDefault();
+          togglePause();
+        }
         return;
-    }
+      }
 
-    if (newDirection) {
+      if (!isPlaying || gameOver || gameWon || isPaused) return;
+
+      const keyDirections: Record<string, Direction> = {
+        ArrowLeft: DIRECTIONS.LEFT,
+        a: DIRECTIONS.LEFT,
+        A: DIRECTIONS.LEFT,
+        ArrowRight: DIRECTIONS.RIGHT,
+        d: DIRECTIONS.RIGHT,
+        D: DIRECTIONS.RIGHT,
+        ArrowUp: DIRECTIONS.UP,
+        w: DIRECTIONS.UP,
+        W: DIRECTIONS.UP,
+        ArrowDown: DIRECTIONS.DOWN,
+        s: DIRECTIONS.DOWN,
+        S: DIRECTIONS.DOWN,
+      };
+
+      const newDirection = keyDirections[e.key];
+      if (newDirection) {
+        e.preventDefault();
+        trySetDirection(newDirection);
+      }
+    },
+    [isPlaying, isPaused, gameOver, gameWon, togglePause, trySetDirection]
+  );
+
+  const handleTouchStart = useCallback(
+    (e: React.TouchEvent | TouchEvent) => {
+      if (!isPlaying || gameOver || gameWon) return;
+
+      const touch = e.touches[0];
+      touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+    },
+    [isPlaying, gameOver, gameWon]
+  );
+
+  const handleTouchMove = useCallback(
+    (e: TouchEvent) => {
+      if (!touchStartRef.current || isPaused) return;
+
+      const touch = e.touches[0];
+      const deltaX = touch.clientX - touchStartRef.current.x;
+      const deltaY = touch.clientY - touchStartRef.current.y;
+
+      if (
+        Math.abs(deltaX) < TOUCH.MIN_SWIPE_DISTANCE &&
+        Math.abs(deltaY) < TOUCH.MIN_SWIPE_DISTANCE
+      ) {
+        return;
+      }
+
       e.preventDefault();
-      trySetDirection(newDirection);
-    }
-  }, [isPlaying, isPaused, gameOver, gameWon, togglePause, trySetDirection]);
 
-  // Swipe handling for mobile
-  const handleTouchStart = useCallback((e: React.TouchEvent | TouchEvent) => {
-    if (!isPlaying || gameOver || gameWon) return;
+      if (Math.abs(deltaX) > Math.abs(deltaY)) {
+        trySetDirection(deltaX > 0 ? DIRECTIONS.RIGHT : DIRECTIONS.LEFT);
+      } else {
+        trySetDirection(deltaY > 0 ? DIRECTIONS.DOWN : DIRECTIONS.UP);
+      }
 
-    const touch = e.touches[0];
-    touchStartRef.current = {
-      x: touch.clientX,
-      y: touch.clientY,
-    };
-  }, [isPlaying, gameOver, gameWon]);
-
-  const handleTouchMove = useCallback((e: TouchEvent) => {
-    if (!touchStartRef.current || isPaused) return;
-
-    const touch = e.touches[0];
-    const deltaX = touch.clientX - touchStartRef.current.x;
-    const deltaY = touch.clientY - touchStartRef.current.y;
-
-    // Check if swipe is long enough
-    if (Math.abs(deltaX) < TOUCH.MIN_SWIPE_DISTANCE && 
-        Math.abs(deltaY) < TOUCH.MIN_SWIPE_DISTANCE) {
-      return;
-    }
-
-    e.preventDefault();
-
-    // Determine swipe direction
-    if (Math.abs(deltaX) > Math.abs(deltaY)) {
-      trySetDirection(deltaX > 0 ? DIRECTIONS.RIGHT : DIRECTIONS.LEFT);
-    } else {
-      trySetDirection(deltaY > 0 ? DIRECTIONS.DOWN : DIRECTIONS.UP);
-    }
-
-    // Reset touch start to allow continuous swiping
-    touchStartRef.current = {
-      x: touch.clientX,
-      y: touch.clientY,
-    };
-  }, [isPaused, trySetDirection]);
+      touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+    },
+    [isPaused, trySetDirection]
+  );
 
   const handleTouchEnd = useCallback(() => {
     touchStartRef.current = null;
   }, []);
 
-  // Register keyboard listeners
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
-  // Register touch listeners
   useEffect(() => {
     const options = { passive: false };
     document.addEventListener("touchmove", handleTouchMove, options);
@@ -142,8 +148,5 @@ export const useInput = () => {
     };
   }, [handleTouchMove, handleTouchEnd]);
 
-  return { 
-    handleTouchStart,
-    handleTouchEnd,
-  };
+  return { handleTouchStart, handleTouchEnd };
 };

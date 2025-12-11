@@ -1,5 +1,9 @@
 import React, { memo } from "react";
-import { Position, Direction, Ghost as GhostType } from "../../types/types";
+import type {
+  Position,
+  Direction,
+  Ghost as GhostType,
+} from "../../types/types";
 import { Ghost } from "../Ghost";
 import { Pacman } from "../Pacman";
 
@@ -14,7 +18,15 @@ interface EntitiesLayerProps {
 }
 
 export const EntitiesLayer: React.FC<EntitiesLayerProps> = memo(
-  ({ ghosts, pacmanPos, pacmanPrevPos, direction, mouthOpen, gameOver, isPowerMode }) => {
+  ({
+    ghosts,
+    pacmanPos,
+    pacmanPrevPos,
+    direction,
+    mouthOpen,
+    gameOver,
+    isPowerMode,
+  }) => {
     return (
       <>
         {/* Render ghosts */}
@@ -29,7 +41,7 @@ export const EntitiesLayer: React.FC<EntitiesLayerProps> = memo(
             pacmanPos={pacmanPos}
           />
         ))}
-        
+
         {/* Render Pacman if game is not over */}
         {!gameOver && (
           <Pacman

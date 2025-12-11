@@ -1,24 +1,30 @@
 // utils/pathfinding.ts
-import { Position, Matrix, CellType, Direction } from "../types/types";
-import { CELL_TYPES, DIRECTIONS } from "../constants/gameConstants";
+import type { Position, Matrix, CellType, Direction } from "../types/types";
+import {
+  CELL_TYPES,
+  DIRECTIONS,
+  DIRECTION_DELTAS,
+  OPPOSITE_DIRECTION,
+} from "../constants/gameConstants";
 
 interface PathNode {
   position: Position;
-  g: number; // Cost from start to current node
-  h: number; // Heuristic (estimated cost from current to goal)
-  f: number; // Total cost (g + h)
+  g: number;
+  h: number;
+  f: number;
   parent: PathNode | null;
 }
+
+const ALL_DIRECTIONS = Object.values(DIRECTIONS) as Direction[];
 
 /**
  * Manhattan distance heuristic for A* pathfinding
  */
-const manhattanDistance = (a: Position, b: Position): number => {
-  return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
-};
+const manhattanDistance = (a: Position, b: Position): number =>
+  Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
 
 /**
- * Create a unique key for position to use in maps/sets
+ * Create a unique key for position
  */
 const posKey = (pos: Position): string => `${pos.x},${pos.y}`;
 
@@ -27,28 +33,19 @@ const posKey = (pos: Position): string => `${pos.x},${pos.y}`;
  */
 const getNeighbors = (pos: Position, maze: Matrix<CellType>): Position[] => {
   const neighbors: Position[] = [];
-  const directions = [
-    { x: 0, y: -1 }, // up
-    { x: 0, y: 1 },  // down
-    { x: -1, y: 0 }, // left
-    { x: 1, y: 0 },  // right
-  ];
 
-  for (const dir of directions) {
-    const newPos = { x: pos.x + dir.x, y: pos.y + dir.y };
-    
-    // Check bounds
+  for (const dir of ALL_DIRECTIONS) {
+    const delta = DIRECTION_DELTAS[dir];
+    const newPos = { x: pos.x + delta.x, y: pos.y + delta.y };
+
     if (
       newPos.x >= 0 &&
       newPos.x < maze[0].length &&
       newPos.y >= 0 &&
-      newPos.y < maze.length
+      newPos.y < maze.length &&
+      maze[newPos.y][newPos.x] !== CELL_TYPES.WALL
     ) {
-      // Check if not a wall
-      const cell = maze[newPos.y][newPos.x];
-      if (cell !== CELL_TYPES.WALL) {
-        neighbors.push(newPos);
-      }
+      neighbors.push(newPos);
     }
   }
 
@@ -57,7 +54,6 @@ const getNeighbors = (pos: Position, maze: Matrix<CellType>): Position[] => {
 
 /**
  * A* pathfinding algorithm
- * Returns the path from start to goal, or null if no path exists
  */
 export const findPath = (
   start: Position,
@@ -65,13 +61,12 @@ export const findPath = (
   maze: Matrix<CellType>,
   maxIterations = 1000
 ): Position[] | null => {
-  // Handle edge cases
   if (posKey(start) === posKey(goal)) {
     return [start];
   }
 
-  const openSet: Map<string, PathNode> = new Map();
-  const closedSet: Set<string> = new Set();
+  const openSet = new Map<string, PathNode>();
+  const closedSet = new Set<string>();
 
   const startNode: PathNode = {
     position: start,
@@ -102,7 +97,6 @@ export const findPath = (
 
     // Check if we reached the goal
     if (posKey(current.position) === posKey(goal)) {
-      // Reconstruct path
       const path: Position[] = [];
       let node: PathNode | null = current;
       while (node) {
@@ -117,12 +111,9 @@ export const findPath = (
     closedSet.add(posKey(current.position));
 
     // Check neighbors
-    const neighbors = getNeighbors(current.position, maze);
-
-    for (const neighborPos of neighbors) {
+    for (const neighborPos of getNeighbors(current.position, maze)) {
       const neighborKey = posKey(neighborPos);
 
-      // Skip if in closed set
       if (closedSet.has(neighborKey)) continue;
 
       const g = current.g + 1;
@@ -132,20 +123,28 @@ export const findPath = (
       const existingNode = openSet.get(neighborKey);
 
       if (!existingNode || g < existingNode.g) {
-        const neighborNode: PathNode = {
+        openSet.set(neighborKey, {
           position: neighborPos,
           g,
           h,
           f,
           parent: current,
-        };
-        openSet.set(neighborKey, neighborNode);
+        });
       }
     }
   }
 
-  // No path found - return path to closest point
   return null;
+};
+
+/**
+ * Get the direction from current position to next position
+ */
+const getDirectionFromDelta = (dx: number, dy: number): Direction => {
+  if (dx === 1) return DIRECTIONS.RIGHT;
+  if (dx === -1) return DIRECTIONS.LEFT;
+  if (dy === 1) return DIRECTIONS.DOWN;
+  return DIRECTIONS.UP;
 };
 
 /**
@@ -161,39 +160,31 @@ export const getNextMoveTowards = (
 
   if (path && path.length > 1) {
     const next = path[1];
-    const dx = next.x - current.x;
-    const dy = next.y - current.y;
-
-    if (dx === 1) return DIRECTIONS.RIGHT;
-    if (dx === -1) return DIRECTIONS.LEFT;
-    if (dy === 1) return DIRECTIONS.DOWN;
-    if (dy === -1) return DIRECTIONS.UP;
+    return getDirectionFromDelta(next.x - current.x, next.y - current.y);
   }
 
   // Fallback: try to continue in current direction or find any valid move
   const neighbors = getNeighbors(current, maze);
-  
+
   // Prefer current direction
-  for (const neighbor of neighbors) {
-    const dx = neighbor.x - current.x;
-    const dy = neighbor.y - current.y;
-    
-    if (currentDirection === DIRECTIONS.RIGHT && dx === 1) return DIRECTIONS.RIGHT;
-    if (currentDirection === DIRECTIONS.LEFT && dx === -1) return DIRECTIONS.LEFT;
-    if (currentDirection === DIRECTIONS.DOWN && dy === 1) return DIRECTIONS.DOWN;
-    if (currentDirection === DIRECTIONS.UP && dy === -1) return DIRECTIONS.UP;
+  const currentDelta = DIRECTION_DELTAS[currentDirection];
+  const preferredPos = {
+    x: current.x + currentDelta.x,
+    y: current.y + currentDelta.y,
+  };
+
+  if (neighbors.some((n) => n.x === preferredPos.x && n.y === preferredPos.y)) {
+    return currentDirection;
   }
 
   // Random valid direction
   if (neighbors.length > 0) {
-    const randomNeighbor = neighbors[Math.floor(Math.random() * neighbors.length)];
-    const dx = randomNeighbor.x - current.x;
-    const dy = randomNeighbor.y - current.y;
-
-    if (dx === 1) return DIRECTIONS.RIGHT;
-    if (dx === -1) return DIRECTIONS.LEFT;
-    if (dy === 1) return DIRECTIONS.DOWN;
-    if (dy === -1) return DIRECTIONS.UP;
+    const randomNeighbor =
+      neighbors[Math.floor(Math.random() * neighbors.length)];
+    return getDirectionFromDelta(
+      randomNeighbor.x - current.x,
+      randomNeighbor.y - current.y
+    );
   }
 
   return currentDirection;
@@ -208,38 +199,22 @@ export const getRandomWanderTarget = (
   previousDirection: Direction
 ): Position => {
   const neighbors = getNeighbors(current, maze);
-  
+  const oppositeDir = OPPOSITE_DIRECTION[previousDirection];
+  const oppositeDelta = DIRECTION_DELTAS[oppositeDir];
+
   // Avoid going back the way we came
-  const oppositeDir = getOppositeDirection(previousDirection);
   const filteredNeighbors = neighbors.filter((n) => {
     const dx = n.x - current.x;
     const dy = n.y - current.y;
-    
-    if (oppositeDir === DIRECTIONS.RIGHT && dx === 1) return false;
-    if (oppositeDir === DIRECTIONS.LEFT && dx === -1) return false;
-    if (oppositeDir === DIRECTIONS.DOWN && dy === 1) return false;
-    if (oppositeDir === DIRECTIONS.UP && dy === -1) return false;
-    
-    return true;
+    return dx !== oppositeDelta.x || dy !== oppositeDelta.y;
   });
 
-  const validNeighbors = filteredNeighbors.length > 0 ? filteredNeighbors : neighbors;
-  
+  const validNeighbors =
+    filteredNeighbors.length > 0 ? filteredNeighbors : neighbors;
+
   if (validNeighbors.length > 0) {
     return validNeighbors[Math.floor(Math.random() * validNeighbors.length)];
   }
-  
+
   return current;
 };
-
-const getOppositeDirection = (dir: Direction): Direction => {
-  switch (dir) {
-    case DIRECTIONS.UP: return DIRECTIONS.DOWN;
-    case DIRECTIONS.DOWN: return DIRECTIONS.UP;
-    case DIRECTIONS.LEFT: return DIRECTIONS.RIGHT;
-    case DIRECTIONS.RIGHT: return DIRECTIONS.LEFT;
-    default: return dir;
-  }
-};
-
-

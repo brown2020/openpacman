@@ -5,28 +5,12 @@ interface WebAudioAPI extends Window {
   webkitAudioContext: typeof AudioContext;
 }
 
-interface AudioTrack {
-  oscillator: OscillatorNode | null;
-  gainNode: GainNode | null;
-  duration: number;
-}
-
 export class SoundManager {
-  private audioContext: AudioContext | null;
-  private isMuted: boolean;
-  private readonly masterVolume: number;
-  private tracks: Map<string, AudioTrack>;
-  private backgroundMusic: AudioBufferSourceNode | null;
-  private musicGainNode: GainNode | null;
+  private audioContext: AudioContext | null = null;
+  private isMuted = false;
+  private masterGain: GainNode | null = null;
 
   constructor() {
-    this.audioContext = null;
-    this.isMuted = false;
-    this.masterVolume = SOUND.VOLUME.MASTER;
-    this.tracks = new Map();
-    this.backgroundMusic = null;
-    this.musicGainNode = null;
-
     if (typeof window !== "undefined") {
       this.initializeAudioContext();
     }
@@ -40,29 +24,18 @@ export class SoundManager {
 
       if (AudioContextClass) {
         this.audioContext = new AudioContextClass();
-        this.createMasterVolumeControl();
-      } else {
-        console.warn("Web Audio API is not supported in this browser");
+        this.masterGain = this.audioContext.createGain();
+        this.masterGain.connect(this.audioContext.destination);
+        this.masterGain.gain.value = SOUND.VOLUME.MASTER;
       }
     } catch (error) {
-      if (error instanceof Error) {
-        console.error("Error initializing Audio Context:", error.message);
-      }
+      console.warn("Web Audio API not supported:", error);
     }
-  }
-
-  private createMasterVolumeControl(): void {
-    if (!this.audioContext) return;
-
-    this.musicGainNode = this.audioContext.createGain();
-    this.musicGainNode.connect(this.audioContext.destination);
-    this.setMasterVolume(this.masterVolume);
   }
 
   private ensureAudioContext(): boolean {
     if (!this.audioContext) return false;
 
-    // Resume audio context if suspended (required for user interaction)
     if (this.audioContext.state === "suspended") {
       this.audioContext.resume();
     }
@@ -70,208 +43,184 @@ export class SoundManager {
     return true;
   }
 
-  public setMasterVolume(volume: number): void {
-    const safeVolume = Math.max(0, Math.min(1, volume));
-    if (this.musicGainNode) {
-      this.musicGainNode.gain.value = safeVolume;
-    }
-  }
-
   public toggleMute(): boolean {
     this.isMuted = !this.isMuted;
-    if (this.musicGainNode) {
-      this.musicGainNode.gain.value = this.isMuted ? 0 : this.masterVolume;
+    if (this.masterGain) {
+      this.masterGain.gain.value = this.isMuted ? 0 : SOUND.VOLUME.MASTER;
     }
     return this.isMuted;
   }
 
-  private createTrack(): AudioTrack {
-    if (!this.audioContext) {
-      return { oscillator: null, gainNode: null, duration: 0 };
-    }
+  private playTone(
+    frequency: number,
+    duration: number,
+    type: OscillatorType = "sine",
+    volumeMultiplier = 1
+  ): void {
+    if (
+      !this.ensureAudioContext() ||
+      this.isMuted ||
+      !this.audioContext ||
+      !this.masterGain
+    )
+      return;
 
     const oscillator = this.audioContext.createOscillator();
     const gainNode = this.audioContext.createGain();
 
     oscillator.connect(gainNode);
-    gainNode.connect(this.musicGainNode || this.audioContext.destination);
+    gainNode.connect(this.masterGain);
 
-    return { oscillator, gainNode, duration: 0 };
-  }
+    oscillator.type = type;
+    oscillator.frequency.setValueAtTime(
+      frequency,
+      this.audioContext.currentTime
+    );
 
-  private cleanupTrack(track: AudioTrack): void {
-    if (track.oscillator) {
-      track.oscillator.disconnect();
-    }
-    if (track.gainNode) {
-      track.gainNode.disconnect();
-    }
+    const volume = SOUND.VOLUME.EFFECTS * volumeMultiplier;
+    gainNode.gain.setValueAtTime(volume, this.audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(
+      0.001,
+      this.audioContext.currentTime + duration
+    );
+
+    oscillator.start();
+    oscillator.stop(this.audioContext.currentTime + duration);
   }
 
   public playDotSound(): void {
-    if (!this.ensureAudioContext() || this.isMuted || !this.audioContext)
-      return;
-
-    const track = this.createTrack();
-
-    if (track.oscillator && track.gainNode) {
-      track.oscillator.type = "sine";
-      track.oscillator.frequency.setValueAtTime(
-        SOUND.EFFECTS.DOT_FREQUENCY,
-        this.audioContext.currentTime
-      );
-
-      track.gainNode.gain.setValueAtTime(
-        SOUND.VOLUME.EFFECTS * this.masterVolume * 0.3,
-        this.audioContext.currentTime
-      );
-      track.gainNode.gain.exponentialRampToValueAtTime(
-        0.001,
-        this.audioContext.currentTime + SOUND.EFFECTS.DOT_DURATION
-      );
-
-      track.oscillator.start();
-      track.oscillator.stop(
-        this.audioContext.currentTime + SOUND.EFFECTS.DOT_DURATION
-      );
-
-      track.oscillator.onended = () => {
-        this.cleanupTrack(track);
-      };
-    }
+    this.playTone(
+      SOUND.EFFECTS.DOT_FREQUENCY,
+      SOUND.EFFECTS.DOT_DURATION,
+      "sine",
+      0.3
+    );
   }
 
   public playDeathSound(): void {
-    if (!this.ensureAudioContext() || this.isMuted || !this.audioContext)
+    if (
+      !this.ensureAudioContext() ||
+      this.isMuted ||
+      !this.audioContext ||
+      !this.masterGain
+    )
       return;
 
-    const track = this.createTrack();
+    const oscillator = this.audioContext.createOscillator();
+    const gainNode = this.audioContext.createGain();
 
-    if (track.oscillator && track.gainNode) {
-      track.oscillator.type = "sawtooth";
-      track.oscillator.frequency.setValueAtTime(
-        SOUND.EFFECTS.DEATH_START_FREQUENCY,
-        this.audioContext.currentTime
-      );
+    oscillator.connect(gainNode);
+    gainNode.connect(this.masterGain);
 
-      track.gainNode.gain.setValueAtTime(
-        SOUND.VOLUME.EFFECTS * this.masterVolume * 0.5,
-        this.audioContext.currentTime
-      );
+    oscillator.type = "sawtooth";
+    oscillator.frequency.setValueAtTime(
+      SOUND.EFFECTS.DEATH_START_FREQUENCY,
+      this.audioContext.currentTime
+    );
+    oscillator.frequency.exponentialRampToValueAtTime(
+      SOUND.EFFECTS.DEATH_END_FREQUENCY,
+      this.audioContext.currentTime + SOUND.EFFECTS.DEATH_DURATION
+    );
 
-      track.oscillator.frequency.exponentialRampToValueAtTime(
-        SOUND.EFFECTS.DEATH_END_FREQUENCY,
-        this.audioContext.currentTime + SOUND.EFFECTS.DEATH_DURATION
-      );
-      track.gainNode.gain.exponentialRampToValueAtTime(
-        0.001,
-        this.audioContext.currentTime + SOUND.EFFECTS.DEATH_DURATION
-      );
+    gainNode.gain.setValueAtTime(
+      SOUND.VOLUME.EFFECTS * 0.5,
+      this.audioContext.currentTime
+    );
+    gainNode.gain.exponentialRampToValueAtTime(
+      0.001,
+      this.audioContext.currentTime + SOUND.EFFECTS.DEATH_DURATION
+    );
 
-      track.oscillator.start();
-      track.oscillator.stop(
-        this.audioContext.currentTime + SOUND.EFFECTS.DEATH_DURATION
-      );
-
-      track.oscillator.onended = () => {
-        this.cleanupTrack(track);
-      };
-    }
+    oscillator.start();
+    oscillator.stop(
+      this.audioContext.currentTime + SOUND.EFFECTS.DEATH_DURATION
+    );
   }
 
   public playPowerPelletSound(): void {
-    if (!this.ensureAudioContext() || this.isMuted || !this.audioContext)
+    if (
+      !this.ensureAudioContext() ||
+      this.isMuted ||
+      !this.audioContext ||
+      !this.masterGain
+    )
       return;
 
-    // Create an ascending arpeggio effect
-    const frequencies = [262, 330, 392, 523]; // C, E, G, C
+    const frequencies = [262, 330, 392, 523];
     const noteDuration = 0.08;
 
     frequencies.forEach((freq, i) => {
-      const track = this.createTrack();
-      if (track.oscillator && track.gainNode && this.audioContext) {
-        track.oscillator.type = "square";
-        track.oscillator.frequency.setValueAtTime(
-          freq,
-          this.audioContext.currentTime + i * noteDuration
-        );
+      const oscillator = this.audioContext!.createOscillator();
+      const gainNode = this.audioContext!.createGain();
 
-        track.gainNode.gain.setValueAtTime(
-          0,
-          this.audioContext.currentTime + i * noteDuration
-        );
-        track.gainNode.gain.linearRampToValueAtTime(
-          SOUND.VOLUME.EFFECTS * this.masterVolume * 0.4,
-          this.audioContext.currentTime + i * noteDuration + 0.01
-        );
-        track.gainNode.gain.exponentialRampToValueAtTime(
-          0.001,
-          this.audioContext.currentTime + (i + 1) * noteDuration
-        );
+      oscillator.connect(gainNode);
+      gainNode.connect(this.masterGain!);
 
-        track.oscillator.start(
-          this.audioContext.currentTime + i * noteDuration
-        );
-        track.oscillator.stop(
-          this.audioContext.currentTime + (i + 1) * noteDuration + 0.05
-        );
+      oscillator.type = "square";
+      oscillator.frequency.setValueAtTime(
+        freq,
+        this.audioContext!.currentTime + i * noteDuration
+      );
 
-        track.oscillator.onended = () => {
-          this.cleanupTrack(track);
-        };
-      }
+      gainNode.gain.setValueAtTime(
+        0,
+        this.audioContext!.currentTime + i * noteDuration
+      );
+      gainNode.gain.linearRampToValueAtTime(
+        SOUND.VOLUME.EFFECTS * 0.4,
+        this.audioContext!.currentTime + i * noteDuration + 0.01
+      );
+      gainNode.gain.exponentialRampToValueAtTime(
+        0.001,
+        this.audioContext!.currentTime + (i + 1) * noteDuration
+      );
+
+      oscillator.start(this.audioContext!.currentTime + i * noteDuration);
+      oscillator.stop(
+        this.audioContext!.currentTime + (i + 1) * noteDuration + 0.05
+      );
     });
   }
 
   public playGhostEatSound(): void {
-    if (!this.ensureAudioContext() || this.isMuted || !this.audioContext)
+    if (
+      !this.ensureAudioContext() ||
+      this.isMuted ||
+      !this.audioContext ||
+      !this.masterGain
+    )
       return;
 
-    const track = this.createTrack();
+    const oscillator = this.audioContext.createOscillator();
+    const gainNode = this.audioContext.createGain();
 
-    if (track.oscillator && track.gainNode) {
-      track.oscillator.type = "square";
-      track.oscillator.frequency.setValueAtTime(
-        100,
-        this.audioContext.currentTime
-      );
-      track.oscillator.frequency.exponentialRampToValueAtTime(
-        800,
-        this.audioContext.currentTime + 0.15
-      );
+    oscillator.connect(gainNode);
+    gainNode.connect(this.masterGain);
 
-      track.gainNode.gain.setValueAtTime(
-        SOUND.VOLUME.EFFECTS * this.masterVolume * 0.4,
-        this.audioContext.currentTime
-      );
-      track.gainNode.gain.exponentialRampToValueAtTime(
-        0.001,
-        this.audioContext.currentTime + 0.2
-      );
+    oscillator.type = "square";
+    oscillator.frequency.setValueAtTime(100, this.audioContext.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(
+      800,
+      this.audioContext.currentTime + 0.15
+    );
 
-      track.oscillator.start();
-      track.oscillator.stop(this.audioContext.currentTime + 0.2);
+    gainNode.gain.setValueAtTime(
+      SOUND.VOLUME.EFFECTS * 0.4,
+      this.audioContext.currentTime
+    );
+    gainNode.gain.exponentialRampToValueAtTime(
+      0.001,
+      this.audioContext.currentTime + 0.2
+    );
 
-      track.oscillator.onended = () => {
-        this.cleanupTrack(track);
-      };
-    }
+    oscillator.start();
+    oscillator.stop(this.audioContext.currentTime + 0.2);
   }
 
   public cleanup(): void {
-    this.tracks.forEach((track) => {
-      this.cleanupTrack(track);
-    });
-    this.tracks.clear();
-
-    if (this.backgroundMusic) {
-      this.backgroundMusic.disconnect();
-      this.backgroundMusic = null;
-    }
-
-    if (this.musicGainNode) {
-      this.musicGainNode.disconnect();
-      this.musicGainNode = null;
+    if (this.masterGain) {
+      this.masterGain.disconnect();
+      this.masterGain = null;
     }
 
     if (this.audioContext) {

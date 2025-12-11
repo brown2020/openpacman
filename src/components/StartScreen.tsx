@@ -1,6 +1,7 @@
 // components/StartScreen.tsx
 import React from "react";
 import type { GameScore } from "../types/types";
+import { GHOST_COLORS } from "../constants/gameConstants";
 
 interface StartScreenProps {
   onStart: () => void;
@@ -102,10 +103,10 @@ export const StartScreen: React.FC<StartScreenProps> = ({
       ))}
 
       {/* Animated ghosts */}
-      <AnimatedGhost color="#FF0000" delay={0} x={70} />
-      <AnimatedGhost color="#FFB8FF" delay={0.3} x={78} />
-      <AnimatedGhost color="#00FFFF" delay={0.6} x={86} />
-      <AnimatedGhost color="#FFB852" delay={0.9} x={94} />
+      <AnimatedGhost color={GHOST_COLORS.BLINKY} delay={0} x={70} />
+      <AnimatedGhost color={GHOST_COLORS.PINKY} delay={0.3} x={78} />
+      <AnimatedGhost color={GHOST_COLORS.INKY} delay={0.6} x={86} />
+      <AnimatedGhost color={GHOST_COLORS.CLYDE} delay={0.9} x={94} />
 
       {/* Main content */}
       <div className="relative z-10 flex flex-col items-center max-w-lg w-full">

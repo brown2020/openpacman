@@ -36,9 +36,13 @@ export const PacmanGame: React.FC = () => {
     }))
   );
 
-  // Actions (stable references, no need for useShallow)
-  const startGame = useGameStore((s) => s.startGame);
-  const togglePause = useGameStore((s) => s.togglePause);
+  // Actions (stable references)
+  const { startGame, togglePause } = useGameStore(
+    useShallow((s) => ({
+      startGame: s.startGame,
+      togglePause: s.togglePause,
+    }))
+  );
 
   // Hooks
   useGameLoop();
@@ -79,7 +83,6 @@ export const PacmanGame: React.FC = () => {
     >
       {/* Header Stats */}
       <div className="flex flex-wrap justify-center gap-6 mb-6 text-center">
-        {/* Level */}
         <div className="flex flex-col items-center">
           <span className="text-xs text-gray-500 uppercase tracking-wider mb-1">
             Level
@@ -89,7 +92,6 @@ export const PacmanGame: React.FC = () => {
           </span>
         </div>
 
-        {/* Score */}
         <div className="flex flex-col items-center">
           <span className="text-xs text-gray-500 uppercase tracking-wider mb-1">
             Score
@@ -99,7 +101,6 @@ export const PacmanGame: React.FC = () => {
           </span>
         </div>
 
-        {/* High Score */}
         <div className="flex flex-col items-center">
           <span className="text-xs text-gray-500 uppercase tracking-wider mb-1">
             High Score
@@ -109,7 +110,6 @@ export const PacmanGame: React.FC = () => {
           </span>
         </div>
 
-        {/* Lives */}
         <div className="flex flex-col items-center">
           <span className="text-xs text-gray-500 uppercase tracking-wider mb-1">
             Lives
@@ -175,7 +175,6 @@ export const PacmanGame: React.FC = () => {
           )}
         </div>
 
-        {/* Pause button for mobile */}
         <button
           onClick={togglePause}
           className="md:hidden px-4 py-2 text-sm text-gray-400 border border-gray-700 rounded-lg 

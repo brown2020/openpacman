@@ -5,6 +5,7 @@ import {
   getInitialDots,
   isValidMove,
   getNextPosition,
+  getPowerPellets,
 } from "../utils/gameUtils";
 import {
   createInitialGhosts,
@@ -13,11 +14,10 @@ import {
   eatGhost,
   checkGhostCollision,
   getGhostEatScore,
-  getPowerPellets,
 } from "../utils/gameEngine";
+import { removeAtPosition } from "../utils/position";
 import {
   INITIAL_POSITION,
-  CELL_TYPES,
   SCORE_DOT,
   SCORE_POWER_PELLET,
   GHOST_FRIGHTENED_DURATION,
@@ -29,8 +29,13 @@ import type {
   GameState,
   Ghost,
   Position,
-  GhostMode,
+  CellType,
+  Matrix,
 } from "../types/types";
+
+// Helper to get current level layout
+const getLayout = (level: number): Matrix<CellType> =>
+  LEVELS[level]?.layout || LEVELS[0].layout;
 
 export interface GameStoreState {
   // Game state
@@ -46,7 +51,6 @@ export interface GameStoreState {
   highScores: GameScore[];
   ghostsEatenInChain: number;
   isPaused: boolean;
-  powerPelletTimeoutId: NodeJS.Timeout | null;
   isTransitioning: boolean;
 
   // Timing
@@ -86,8 +90,8 @@ const createInitialGameState = (): GameState => ({
   score: 0,
   highScore: 0,
   lives: 3,
-  gameStateType: "READY",
   powerPelletActive: false,
+  powerPelletTimeRemaining: 0,
   dotsEaten: 0,
   totalDots: 0,
   ghostsEaten: 0,
@@ -108,22 +112,15 @@ export const useGameStore = create<GameStoreState>()(
       highScores: [],
       ghostsEatenInChain: 0,
       isPaused: false,
-      powerPelletTimeoutId: null,
       isTransitioning: false,
       lastMoveTime: 0,
       moveAccumulator: 0,
 
       startGame: (level = 0) => {
         const prev = get().gameState;
-        const prevTimeoutId = get().powerPelletTimeoutId;
-        const layout = LEVELS[level]?.layout || LEVELS[0].layout;
+        const layout = getLayout(level);
         const initialDots = getInitialDots(layout);
         const initialPowerPellets = getPowerPellets(layout);
-
-        // Clear any existing power pellet timeout
-        if (prevTimeoutId) {
-          clearTimeout(prevTimeoutId);
-        }
 
         set({
           gameState: {
@@ -144,7 +141,6 @@ export const useGameStore = create<GameStoreState>()(
           mouthOpen: true,
           ghostsEatenInChain: 0,
           isPaused: false,
-          powerPelletTimeoutId: null,
           isTransitioning: false,
           lastMoveTime: performance.now(),
           moveAccumulator: 0,
@@ -152,10 +148,7 @@ export const useGameStore = create<GameStoreState>()(
       },
 
       setPacmanPos: (pos) =>
-        set((s) => ({
-          pacmanPrevPos: s.pacmanPos,
-          pacmanPos: pos,
-        })),
+        set((s) => ({ pacmanPrevPos: s.pacmanPos, pacmanPos: pos })),
 
       setDirection: (dir) => set({ direction: dir }),
 
@@ -163,7 +156,7 @@ export const useGameStore = create<GameStoreState>()(
 
       movePacman: () => {
         const { pacmanPos, direction, nextDirection, gameState } = get();
-        const layout = LEVELS[gameState.level]?.layout || LEVELS[0].layout;
+        const layout = getLayout(gameState.level);
 
         // Try next direction first if set
         if (nextDirection) {
@@ -182,10 +175,7 @@ export const useGameStore = create<GameStoreState>()(
         // Otherwise continue in current direction
         const newPos = getNextPosition(pacmanPos, direction);
         if (isValidMove(newPos, layout)) {
-          set((s) => ({
-            pacmanPrevPos: s.pacmanPos,
-            pacmanPos: newPos,
-          }));
+          set((s) => ({ pacmanPrevPos: s.pacmanPos, pacmanPos: newPos }));
           return true;
         }
 
@@ -197,9 +187,7 @@ export const useGameStore = create<GameStoreState>()(
         if (!gameState.isPlaying || gameState.gameOver || gameState.gameWon)
           return;
 
-        const layout = LEVELS[gameState.level]?.layout || LEVELS[0].layout;
-
-        // Find Blinky's position for Inky's AI
+        const layout = getLayout(gameState.level);
         const blinky = ghosts.find((g) => g.name === "BLINKY");
         const blinkyPos = blinky?.position || pacmanPos;
 
@@ -244,7 +232,6 @@ export const useGameStore = create<GameStoreState>()(
             ...s.gameState,
             isPlaying: false,
             gameOver: true,
-            gameStateType: "GAME_OVER",
           },
           highScores: newHighScores,
         }));
@@ -252,9 +239,7 @@ export const useGameStore = create<GameStoreState>()(
 
       collectDot: (dotPos: Position) => {
         const { dots, gameState } = get();
-        const remainingDots = dots.filter(
-          (dot) => dot.x !== dotPos.x || dot.y !== dotPos.y
-        );
+        const remainingDots = removeAtPosition(dots, dotPos);
 
         if (remainingDots.length < dots.length) {
           const newScore = gameState.score + SCORE_DOT;
@@ -271,39 +256,21 @@ export const useGameStore = create<GameStoreState>()(
       },
 
       collectPowerPellet: (pelletPos: Position) => {
-        const { powerPellets, ghosts, gameState, powerPelletTimeoutId } = get();
-        const remainingPellets = powerPellets.filter(
-          (p) => p.x !== pelletPos.x || p.y !== pelletPos.y
-        );
+        const { powerPellets, ghosts, gameState } = get();
+        const remainingPellets = removeAtPosition(powerPellets, pelletPos);
 
         if (remainingPellets.length < powerPellets.length) {
-          // Clear any existing power pellet timeout
-          if (powerPelletTimeoutId) {
-            clearTimeout(powerPelletTimeoutId);
-          }
-
           const newScore = gameState.score + SCORE_POWER_PELLET;
-
-          // Create new timeout for power pellet expiration
-          const newTimeoutId = setTimeout(() => {
-            set((s) => ({
-              gameState: {
-                ...s.gameState,
-                powerPelletActive: false,
-              },
-              powerPelletTimeoutId: null,
-            }));
-          }, GHOST_FRIGHTENED_DURATION);
 
           set({
             powerPellets: remainingPellets,
             ghosts: frightenGhosts(ghosts),
             ghostsEatenInChain: 0,
-            powerPelletTimeoutId: newTimeoutId,
             gameState: {
               ...gameState,
               score: newScore,
               powerPelletActive: true,
+              powerPelletTimeRemaining: GHOST_FRIGHTENED_DURATION,
               highScore: Math.max(gameState.highScore, newScore),
             },
           });
@@ -319,7 +286,6 @@ export const useGameStore = create<GameStoreState>()(
         }
 
         if (collision.canEat) {
-          // Eat the ghost
           const score = getGhostEatScore(ghostsEatenInChain);
           const newGhosts = eatGhost(ghosts, collision.ghost);
 
@@ -337,31 +303,23 @@ export const useGameStore = create<GameStoreState>()(
           return { died: false, ateGhost: true, score };
         }
 
-        // Pacman dies
         return { died: true, ateGhost: false, score: 0 };
       },
 
       updateGameState: (updater) =>
-        set((s) => ({
-          gameState: updater(s.gameState),
-        })),
+        set((s) => ({ gameState: updater(s.gameState) })),
 
       resetEntitiesAfterDeath: () =>
-        set(() => ({
+        set({
           pacmanPos: INITIAL_POSITION,
           pacmanPrevPos: INITIAL_POSITION,
           direction: DIRECTIONS.RIGHT,
           nextDirection: null,
           ghosts: createInitialGhosts(),
           ghostsEatenInChain: 0,
-        })),
+        }),
 
-      resetGame: () => {
-        const { powerPelletTimeoutId } = get();
-        if (powerPelletTimeoutId) {
-          clearTimeout(powerPelletTimeoutId);
-        }
-
+      resetGame: () =>
         set({
           gameState: createInitialGameState(),
           pacmanPos: INITIAL_POSITION,
@@ -373,27 +331,47 @@ export const useGameStore = create<GameStoreState>()(
           ghosts: [],
           isPaused: false,
           ghostsEatenInChain: 0,
-          powerPelletTimeoutId: null,
           isTransitioning: false,
-        });
-      },
+        }),
 
-      togglePause: () => {
-        set((s) => ({ isPaused: !s.isPaused }));
-      },
+      togglePause: () => set((s) => ({ isPaused: !s.isPaused })),
 
       tick: (deltaTime: number) => {
         const state = get();
-        if (
-          !state.gameState.isPlaying ||
-          state.gameState.gameOver ||
-          state.gameState.gameWon ||
-          state.isPaused
-        )
-          return;
+        const { gameState, isPaused } = state;
 
-        // Update ghosts with delta time
-        state.updateGhosts(deltaTime);
+        if (
+          !gameState.isPlaying ||
+          gameState.gameOver ||
+          gameState.gameWon ||
+          isPaused
+        ) {
+          return;
+        }
+
+        // Update power pellet timer only - ghost updates are handled by game loop
+        if (
+          gameState.powerPelletActive &&
+          gameState.powerPelletTimeRemaining > 0
+        ) {
+          const remaining = gameState.powerPelletTimeRemaining - deltaTime;
+          if (remaining <= 0) {
+            set((s) => ({
+              gameState: {
+                ...s.gameState,
+                powerPelletActive: false,
+                powerPelletTimeRemaining: 0,
+              },
+            }));
+          } else {
+            set((s) => ({
+              gameState: {
+                ...s.gameState,
+                powerPelletTimeRemaining: remaining,
+              },
+            }));
+          }
+        }
       },
     }),
     {
@@ -406,3 +384,34 @@ export const useGameStore = create<GameStoreState>()(
     }
   )
 );
+
+// Selector helpers for batched access
+export const selectGameplay = (s: GameStoreState) => ({
+  isPlaying: s.gameState.isPlaying,
+  isPaused: s.isPaused,
+  isTransitioning: s.isTransitioning,
+  gameOver: s.gameState.gameOver,
+  gameWon: s.gameState.gameWon,
+  level: s.gameState.level,
+});
+
+export const selectEntities = (s: GameStoreState) => ({
+  pacmanPos: s.pacmanPos,
+  dots: s.dots,
+  powerPellets: s.powerPellets,
+  ghosts: s.ghosts,
+});
+
+export const selectActions = (s: GameStoreState) => ({
+  movePacman: s.movePacman,
+  updateGhosts: s.updateGhosts,
+  toggleMouth: s.toggleMouth,
+  collectDot: s.collectDot,
+  collectPowerPellet: s.collectPowerPellet,
+  handleGhostCollision: s.handleGhostCollision,
+  setGameOver: s.setGameOver,
+  updateGameState: s.updateGameState,
+  resetEntitiesAfterDeath: s.resetEntitiesAfterDeath,
+  startGame: s.startGame,
+  tick: s.tick,
+});

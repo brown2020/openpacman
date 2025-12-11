@@ -1,9 +1,9 @@
 import React, { memo, useMemo } from "react";
-import { MazeCell } from "../../types/types";
+import type { CellType } from "../../types/types";
 import { CELL_SIZE, CELL_TYPES } from "../../constants/gameConstants";
 
 interface WallsLayerProps {
-  level: MazeCell[][];
+  level: CellType[][];
 }
 
 interface WallNeighbors {
@@ -14,7 +14,7 @@ interface WallNeighbors {
 }
 
 const getWallNeighbors = (
-  level: MazeCell[][],
+  level: CellType[][],
   x: number,
   y: number
 ): WallNeighbors => {
@@ -32,26 +32,31 @@ const getWallNeighbors = (
   };
 };
 
-const WallCell: React.FC<{ x: number; y: number; neighbors: WallNeighbors }> = memo(
-  ({ x, y, neighbors }) => {
+const WallCell: React.FC<{ x: number; y: number; neighbors: WallNeighbors }> =
+  memo(({ x, y, neighbors }) => {
     // Calculate border radius based on neighbors
     const borderRadius = useMemo(() => {
       const radius = 4;
       return {
         borderTopLeftRadius: !neighbors.top && !neighbors.left ? radius : 0,
         borderTopRightRadius: !neighbors.top && !neighbors.right ? radius : 0,
-        borderBottomLeftRadius: !neighbors.bottom && !neighbors.left ? radius : 0,
-        borderBottomRightRadius: !neighbors.bottom && !neighbors.right ? radius : 0,
+        borderBottomLeftRadius:
+          !neighbors.bottom && !neighbors.left ? radius : 0,
+        borderBottomRightRadius:
+          !neighbors.bottom && !neighbors.right ? radius : 0,
       };
     }, [neighbors]);
 
     // Calculate border visibility
-    const borders = useMemo(() => ({
-      borderTop: !neighbors.top ? '2px solid #4444FF' : 'none',
-      borderRight: !neighbors.right ? '2px solid #4444FF' : 'none',
-      borderBottom: !neighbors.bottom ? '2px solid #4444FF' : 'none',
-      borderLeft: !neighbors.left ? '2px solid #4444FF' : 'none',
-    }), [neighbors]);
+    const borders = useMemo(
+      () => ({
+        borderTop: !neighbors.top ? "2px solid #4444FF" : "none",
+        borderRight: !neighbors.right ? "2px solid #4444FF" : "none",
+        borderBottom: !neighbors.bottom ? "2px solid #4444FF" : "none",
+        borderLeft: !neighbors.left ? "2px solid #4444FF" : "none",
+      }),
+      [neighbors]
+    );
 
     return (
       <div
@@ -61,24 +66,24 @@ const WallCell: React.FC<{ x: number; y: number; neighbors: WallNeighbors }> = m
           height: CELL_SIZE,
           left: x * CELL_SIZE,
           top: y * CELL_SIZE,
-          background: 'linear-gradient(135deg, #1B1464 0%, #0D0D2B 100%)',
+          background: "linear-gradient(135deg, #1B1464 0%, #0D0D2B 100%)",
           ...borderRadius,
           ...borders,
-          boxSizing: 'border-box',
+          boxSizing: "border-box",
         }}
       >
         {/* Inner glow effect */}
         <div
           className="absolute inset-0"
           style={{
-            background: 'radial-gradient(circle at 30% 30%, rgba(68, 68, 255, 0.15) 0%, transparent 60%)',
+            background:
+              "radial-gradient(circle at 30% 30%, rgba(68, 68, 255, 0.15) 0%, transparent 60%)",
             ...borderRadius,
           }}
         />
       </div>
     );
-  }
-);
+  });
 
 WallCell.displayName = "WallCell";
 
