@@ -1,13 +1,13 @@
 # OpenPacman 🎮
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Next.js](https://img.shields.io/badge/Next.js-16-black.svg)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-19-61DAFB.svg)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6.svg)](https://www.typescriptlang.org/)
-[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-4-06B6D4.svg)](https://tailwindcss.com/)
-[![Zustand](https://img.shields.io/badge/Zustand-5-443E38.svg)](https://zustand-demo.pmnd.rs/)
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPLv3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0.en.html)
+[![Next.js](https://img.shields.io/badge/Next.js-16.1.1-black.svg)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19.2.3-61DAFB.svg)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9.3-3178C6.svg)](https://www.typescriptlang.org/)
+[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-4.1.18-06B6D4.svg)](https://tailwindcss.com/)
+[![Zustand](https://img.shields.io/badge/Zustand-5.0.9-443E38.svg)](https://zustand-demo.pmnd.rs/)
 
-A modern, open-source implementation of the classic Pac-Man arcade game built with Next.js 16, React 19, TypeScript, and TailwindCSS 4. Features authentic ghost AI behaviors, power pellet mechanics, responsive touch controls, and retro arcade aesthetics.
+A modern, open-source implementation of the classic Pac-Man arcade game built with Next.js 16.1.1, React 19.2.3, TypeScript 5.9.3, and TailwindCSS 4.1.18. Features authentic ghost AI behaviors, power pellet mechanics, responsive touch controls, and retro arcade aesthetics.
 
 **[🎮 Play Now](https://openpacman.vercel.app/)** | **[📖 Documentation](#-architecture)** | **[🤝 Contributing](#-contributing)**
 
@@ -44,7 +44,7 @@ A modern, open-source implementation of the classic Pac-Man arcade game built wi
 
 ### Prerequisites
 
-- **Node.js** 18.17 or later
+- **Node.js** 20.9.0 or later
 - **npm** 9+ or **yarn** 1.22+ or **pnpm** 8+
 
 ### Installation
@@ -110,24 +110,24 @@ Open [http://localhost:3000](http://localhost:3000) to play!
 
 | Package                                  | Version | Purpose                         |
 | ---------------------------------------- | ------- | ------------------------------- |
-| [Next.js](https://nextjs.org/)           | 16.x    | React framework with App Router |
-| [React](https://react.dev/)              | 19.x    | UI component library            |
-| [Zustand](https://zustand-demo.pmnd.rs/) | 5.x     | Lightweight state management    |
+| [Next.js](https://nextjs.org/)           | 16.1.1  | React framework with App Router |
+| [React](https://react.dev/)              | 19.2.3  | UI component library            |
+| [Zustand](https://zustand-demo.pmnd.rs/) | 5.0.9   | Lightweight state management    |
 
 ### Styling & Build
 
 | Package                                       | Version | Purpose                     |
 | --------------------------------------------- | ------- | --------------------------- |
-| [TailwindCSS](https://tailwindcss.com/)       | 4.x     | Utility-first CSS framework |
-| [PostCSS](https://postcss.org/)               | 8.x     | CSS processing              |
-| [TypeScript](https://www.typescriptlang.org/) | 5.x     | Static type checking        |
+| [TailwindCSS](https://tailwindcss.com/)       | 4.1.18  | Utility-first CSS framework |
+| [PostCSS](https://postcss.org/)               | 8.5.6   | CSS processing              |
+| [TypeScript](https://www.typescriptlang.org/) | 5.9.3   | Static type checking        |
 
 ### Development
 
 | Package                                                                       | Version | Purpose              |
 | ----------------------------------------------------------------------------- | ------- | -------------------- |
-| [ESLint](https://eslint.org/)                                                 | 9.x     | Code linting         |
-| [eslint-config-next](https://nextjs.org/docs/app/api-reference/config/eslint) | 16.x    | Next.js ESLint rules |
+| [ESLint](https://eslint.org/)                                                 | 9.39.2  | Code linting         |
+| [eslint-config-next](https://nextjs.org/docs/app/api-reference/config/eslint) | 16.1.1  | Next.js ESLint rules |
 
 ---
 
@@ -391,19 +391,7 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 ## 📝 License
 
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
-
-```
-MIT License
-
-Copyright (c) 2024 Stephen Brown
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software...
-```
+This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)** - see [`LICENSE.md`](LICENSE.md) for details.
 
 ---
 
