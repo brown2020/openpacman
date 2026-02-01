@@ -7,6 +7,19 @@ import { getLayout } from "../levels/gameLevels";
 import { useGameStore } from "../stores/game-store";
 import { useGameLoop } from "../hooks/useGameLoop";
 import { useInput } from "../hooks/useInput";
+import type { FruitType } from "../types/types";
+
+// Fruit icons for display
+const FRUIT_ICONS: Record<FruitType, string> = {
+  cherry: "🍒",
+  strawberry: "🍓",
+  orange: "🍊",
+  apple: "🍎",
+  melon: "🍈",
+  galaxian: "🚀",
+  bell: "🔔",
+  key: "🔑",
+};
 
 export const PacmanGame: React.FC = () => {
   // Grouped state selectors for better performance
@@ -20,6 +33,8 @@ export const PacmanGame: React.FC = () => {
     mouthOpen,
     highScores,
     isPaused,
+    isTransitioning,
+    scorePopups,
   } = useGameStore(
     useShallow((s) => ({
       gameState: s.gameState,
@@ -31,6 +46,8 @@ export const PacmanGame: React.FC = () => {
       mouthOpen: s.mouthOpen,
       highScores: s.highScores,
       isPaused: s.isPaused,
+      isTransitioning: s.isTransitioning,
+      scorePopups: s.scorePopups,
     }))
   );
 
@@ -80,22 +97,13 @@ export const PacmanGame: React.FC = () => {
       onTouchStart={handleTouchStart}
     >
       {/* Header Stats */}
-      <div className="flex flex-wrap justify-center gap-6 mb-6 text-center">
+      <div className="flex flex-wrap justify-center gap-6 mb-4 text-center">
         <div className="flex flex-col items-center">
           <span className="text-xs text-gray-500 uppercase tracking-wider mb-1">
-            Level
+            1UP
           </span>
-          <span className="text-2xl font-bold text-blue-400 font-arcade text-glow-blue">
-            {gameState.level + 1}
-          </span>
-        </div>
-
-        <div className="flex flex-col items-center">
-          <span className="text-xs text-gray-500 uppercase tracking-wider mb-1">
-            Score
-          </span>
-          <span className="text-2xl font-bold text-yellow-400 font-arcade text-glow-yellow">
-            {gameState.score.toLocaleString()}
+          <span className="text-xl font-bold text-white font-arcade">
+            {gameState.score.toLocaleString().padStart(6, " ")}
           </span>
         </div>
 
@@ -103,41 +111,18 @@ export const PacmanGame: React.FC = () => {
           <span className="text-xs text-gray-500 uppercase tracking-wider mb-1">
             High Score
           </span>
-          <span className="text-2xl font-bold text-green-400 font-arcade text-glow-green">
-            {gameState.highScore.toLocaleString()}
+          <span className="text-xl font-bold text-white font-arcade">
+            {gameState.highScore.toLocaleString().padStart(6, " ")}
           </span>
         </div>
 
         <div className="flex flex-col items-center">
           <span className="text-xs text-gray-500 uppercase tracking-wider mb-1">
-            Lives
+            Level
           </span>
-          <div className="flex gap-1">
-            {Array.from({ length: gameState.lives }).map((_, i) => (
-              <svg key={i} width="20" height="20" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10" fill="#FFE135" />
-                <path d="M 12,12 L 22,8 A 10,10 0 1,0 22,16 Z" fill="#000" />
-              </svg>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Progress Bar */}
-      <div className="w-full max-w-md mb-4">
-        <div className="flex justify-between text-xs text-gray-500 mb-1">
-          <span>Progress</span>
-          <span>{progress}%</span>
-        </div>
-        <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-          <div
-            className="h-full rounded-full transition-all duration-300"
-            style={{
-              width: `${progress}%`,
-              background: "linear-gradient(90deg, #FFE135 0%, #FF6B00 100%)",
-              boxShadow: "0 0 10px rgba(255, 225, 53, 0.5)",
-            }}
-          />
+          <span className="text-xl font-bold text-cyan-400 font-arcade">
+            {gameState.level + 1}
+          </span>
         </div>
       </div>
 
@@ -154,18 +139,57 @@ export const PacmanGame: React.FC = () => {
         gameWon={gameState.gameWon}
         isPaused={isPaused}
         isPowerMode={gameState.powerPelletActive}
+        isReady={gameState.isReady}
+        fruit={gameState.fruit}
+        scorePopups={scorePopups}
+        isTransitioning={isTransitioning}
       />
 
+      {/* Bottom HUD - Lives and Fruits */}
+      <div className="flex justify-between w-full max-w-md mt-4 px-2">
+        {/* Lives (left side) */}
+        <div className="flex gap-1 items-center">
+          {Array.from({ length: Math.max(0, gameState.lives - 1) }).map((_, i) => (
+            <svg key={i} width="18" height="18" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10" fill="#FFE135" />
+              <path d="M 12,12 L 22,8 A 10,10 0 1,0 22,16 Z" fill="#000" />
+            </svg>
+          ))}
+        </div>
+
+        {/* Fruits eaten (right side) */}
+        <div className="flex gap-1 items-center">
+          {gameState.fruitEaten.slice(-7).map((fruit, i) => (
+            <span key={i} className="text-base">
+              {FRUIT_ICONS[fruit]}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Progress Bar */}
+      <div className="w-full max-w-md mt-2">
+        <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all duration-300"
+            style={{
+              width: `${progress}%`,
+              background: "linear-gradient(90deg, #FFE135 0%, #FF6B00 100%)",
+              boxShadow: "0 0 10px rgba(255, 225, 53, 0.5)",
+            }}
+          />
+        </div>
+      </div>
+
       {/* Controls hint */}
-      <div className="mt-6 flex flex-col items-center gap-2">
-        <div className="text-sm text-gray-500">
+      <div className="mt-4 flex flex-col items-center gap-2">
+        <div className="text-xs text-gray-600">
           {!gameState.gameOver && !gameState.gameWon ? (
             <>
               <span className="hidden md:inline">
-                Arrow keys or WASD to move •{" "}
+                Arrow keys or WASD to move • ESC/P to pause
               </span>
-              <span className="md:hidden">Swipe to move • </span>
-              <span>ESC/P to pause</span>
+              <span className="md:hidden">Swipe to move • Tap to pause</span>
             </>
           ) : (
             "Press Start to play again"
@@ -174,7 +198,7 @@ export const PacmanGame: React.FC = () => {
 
         <button
           onClick={togglePause}
-          className="md:hidden px-4 py-2 text-sm text-gray-400 border border-gray-700 rounded-lg 
+          className="md:hidden px-4 py-2 text-xs text-gray-400 border border-gray-700 rounded-lg
                      hover:bg-gray-800 active:bg-gray-700 transition-colors"
         >
           {isPaused ? "Resume" : "Pause"}
@@ -184,14 +208,14 @@ export const PacmanGame: React.FC = () => {
       {/* Power Mode Indicator */}
       {gameState.powerPelletActive && (
         <div
-          className="mt-4 px-4 py-2 rounded-full text-sm font-bold"
+          className="mt-3 px-4 py-1 rounded-full text-xs font-bold text-white"
           style={{
             background: "linear-gradient(90deg, #2121DE 0%, #5555FF 100%)",
-            boxShadow: "0 0 20px rgba(33, 33, 222, 0.6)",
+            boxShadow: "0 0 15px rgba(33, 33, 222, 0.6)",
             animation: "pulse 0.5s ease-in-out infinite",
           }}
         >
-          ⚡ POWER MODE ACTIVE ⚡
+          POWER MODE
         </div>
       )}
     </div>

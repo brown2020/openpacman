@@ -1,14 +1,19 @@
+"use client";
+
 import React, { memo } from "react";
 import type {
   Position,
   Direction,
   Ghost as GhostType,
   CellType,
+  Fruit as FruitType,
+  ScorePopup,
 } from "../types/types";
 import { CELL_SIZE } from "../constants/gameConstants";
 import { WallsLayer } from "./board/WallsLayer";
 import { DotsLayer } from "./board/DotsLayer";
 import { EntitiesLayer } from "./board/EntitiesLayer";
+import { Fruit } from "./Fruit";
 
 interface GameBoardProps {
   level: CellType[][];
@@ -22,6 +27,10 @@ interface GameBoardProps {
   gameWon: boolean;
   isPaused: boolean;
   isPowerMode: boolean;
+  isReady?: boolean;
+  fruit?: FruitType | null;
+  scorePopups?: ScorePopup[];
+  isTransitioning?: boolean;
 }
 
 export const GameBoard: React.FC<GameBoardProps> = memo(
@@ -37,6 +46,10 @@ export const GameBoard: React.FC<GameBoardProps> = memo(
     gameWon,
     isPaused,
     isPowerMode,
+    isReady = false,
+    fruit = null,
+    scorePopups = [],
+    isTransitioning = false,
   }) => {
     if (!level || level.length === 0) return null;
 
@@ -47,7 +60,9 @@ export const GameBoard: React.FC<GameBoardProps> = memo(
       <div className="relative">
         {/* Game board container with CRT effect */}
         <div
-          className="relative rounded-lg overflow-hidden crt-glow scanlines"
+          className={`relative rounded-lg overflow-hidden crt-glow scanlines ${
+            isTransitioning ? "level-flash" : ""
+          }`}
           style={{
             width,
             height,
@@ -67,6 +82,18 @@ export const GameBoard: React.FC<GameBoardProps> = memo(
           {/* Dots and Power Pellets Layer */}
           <DotsLayer dots={dots} powerPellets={powerPellets} />
 
+          {/* Fruit Layer */}
+          {fruit && fruit.visible && (
+            <svg
+              className="absolute inset-0 pointer-events-none"
+              style={{ zIndex: 15 }}
+              width={width}
+              height={height}
+            >
+              <Fruit fruit={fruit} />
+            </svg>
+          )}
+
           {/* Entities Layer (Ghosts + Pacman) */}
           <EntitiesLayer
             ghosts={ghosts}
@@ -77,8 +104,40 @@ export const GameBoard: React.FC<GameBoardProps> = memo(
             isPowerMode={isPowerMode}
           />
 
+          {/* Score Popups */}
+          {scorePopups.map((popup, index) => (
+            <div
+              key={`popup-${index}-${popup.position.x}-${popup.position.y}`}
+              className="absolute text-white font-bold text-sm score-popup"
+              style={{
+                left: popup.position.x * CELL_SIZE,
+                top: popup.position.y * CELL_SIZE - 10,
+                zIndex: 100,
+                textShadow: "0 0 4px #00FFFF",
+                animation: "score-float 1s ease-out forwards",
+              }}
+            >
+              {popup.points}
+            </div>
+          ))}
+
+          {/* READY! Screen */}
+          {isReady && !gameOver && !gameWon && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center z-50">
+              <div
+                className="text-3xl font-bold text-yellow-400 tracking-wider ready-text"
+                style={{
+                  textShadow: "0 0 20px rgba(255, 255, 0, 0.8)",
+                  animation: "ready-pulse 0.5s ease-in-out infinite",
+                }}
+              >
+                READY!
+              </div>
+            </div>
+          )}
+
           {/* Pause Overlay */}
-          {isPaused && !gameOver && !gameWon && (
+          {isPaused && !gameOver && !gameWon && !isReady && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-50">
               <div className="pause-text text-4xl font-bold text-yellow-400 mb-4 tracking-wider">
                 PAUSED
@@ -115,7 +174,7 @@ export const GameBoard: React.FC<GameBoardProps> = memo(
           )}
 
           {/* Power Mode Overlay Effect */}
-          {isPowerMode && !gameOver && !gameWon && (
+          {isPowerMode && !gameOver && !gameWon && !isReady && (
             <div
               className="absolute inset-0 pointer-events-none z-5"
               style={{
