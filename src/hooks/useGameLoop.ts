@@ -23,8 +23,18 @@ export const useGameLoop = () => {
   const entities = useGameStore(useShallow(selectEntities));
   const actions = useGameStore(useShallow(selectActions));
   const canPlay = useGameStore(selectCanPlay);
+  const powerPelletActive = useGameStore(
+    (s) => s.gameState.powerPelletActive
+  );
+  const totalDots = useGameStore((s) => s.gameState.totalDots);
 
-  const { playSound } = useSound();
+  const {
+    playSound,
+    startSiren,
+    stopSiren,
+    startFrightenedSiren,
+    updateSirenSpeed,
+  } = useSound();
 
   const animationFrameRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(0);
@@ -32,10 +42,98 @@ export const useGameLoop = () => {
   const ghostMoveAccumulator = useRef<number>(0);
   const mouthAnimAccumulator = useRef<number>(0);
   const levelTransitionRef = useRef<boolean>(false);
+  const introPlayedRef = useRef<boolean>(false);
+  const sirenActiveRef = useRef<boolean>(false);
+  const prevPowerModeRef = useRef<boolean>(false);
+
+  // Handle intro jingle when game starts
+  useEffect(() => {
+    if (gameplay.isPlaying && gameplay.isReady && !introPlayedRef.current) {
+      playSound("intro");
+      introPlayedRef.current = true;
+    }
+    if (!gameplay.isPlaying) {
+      introPlayedRef.current = false;
+    }
+  }, [gameplay.isPlaying, gameplay.isReady, playSound]);
+
+  // Handle siren based on game state
+  useEffect(() => {
+    if (!gameplay.isPlaying || gameplay.gameOver || gameplay.gameWon) {
+      stopSiren();
+      sirenActiveRef.current = false;
+      return;
+    }
+
+    if (gameplay.isPaused || gameplay.isReady) {
+      stopSiren();
+      sirenActiveRef.current = false;
+      return;
+    }
+
+    // Power mode - different siren
+    if (powerPelletActive && !prevPowerModeRef.current) {
+      startFrightenedSiren();
+      sirenActiveRef.current = true;
+    } else if (!powerPelletActive && prevPowerModeRef.current) {
+      // Power mode ended - restart normal siren
+      stopSiren();
+      const dotsRemaining = entities.dots.length + entities.powerPellets.length;
+      const speed = 1 + (1 - dotsRemaining / totalDots);
+      startSiren(speed);
+      sirenActiveRef.current = true;
+    } else if (!sirenActiveRef.current && !powerPelletActive) {
+      // Start siren if not running
+      const dotsRemaining = entities.dots.length + entities.powerPellets.length;
+      const speed = 1 + (1 - dotsRemaining / totalDots);
+      startSiren(speed);
+      sirenActiveRef.current = true;
+    }
+
+    prevPowerModeRef.current = powerPelletActive;
+  }, [
+    gameplay.isPlaying,
+    gameplay.isPaused,
+    gameplay.isReady,
+    gameplay.gameOver,
+    gameplay.gameWon,
+    powerPelletActive,
+    entities.dots.length,
+    entities.powerPellets.length,
+    totalDots,
+    startSiren,
+    stopSiren,
+    startFrightenedSiren,
+  ]);
+
+  // Update siren speed as dots decrease
+  useEffect(() => {
+    if (!sirenActiveRef.current || powerPelletActive) return;
+    const dotsRemaining = entities.dots.length + entities.powerPellets.length;
+    const speed = 1 + (1 - dotsRemaining / Math.max(totalDots, 1));
+    updateSirenSpeed(speed);
+  }, [
+    entities.dots.length,
+    entities.powerPellets.length,
+    totalDots,
+    powerPelletActive,
+    updateSirenSpeed,
+  ]);
 
   const gameLoop = useCallback(
     (currentTime: number) => {
-      const { isTransitioning } = gameplay;
+      const { isTransitioning, isReady } = gameplay;
+
+      // During ready screen, only tick for countdown
+      if (isReady && gameplay.isPlaying) {
+        const deltaTime = lastTimeRef.current
+          ? currentTime - lastTimeRef.current
+          : 16;
+        lastTimeRef.current = currentTime;
+        actions.tick(Math.min(deltaTime, 100));
+        animationFrameRef.current = requestAnimationFrame(gameLoop);
+        return;
+      }
 
       if (!canPlay || isTransitioning) {
         animationFrameRef.current = requestAnimationFrame(gameLoop);
@@ -52,7 +150,7 @@ export const useGameLoop = () => {
       ghostMoveAccumulator.current += cappedDelta;
       mouthAnimAccumulator.current += cappedDelta;
 
-      // Update power pellet timer via tick
+      // Update timers via tick
       actions.tick(cappedDelta);
 
       // Move Pacman at fixed intervals
@@ -80,10 +178,10 @@ export const useGameLoop = () => {
 
   // Collision and collection effect
   useEffect(() => {
-    const { isTransitioning, level } = gameplay;
-    const { pacmanPos, dots, powerPellets } = entities;
+    const { isTransitioning, level, isReady } = gameplay;
+    const { pacmanPos, dots, powerPellets, fruit } = entities;
 
-    if (!canPlay || isTransitioning) return;
+    if (!canPlay || isTransitioning || isReady) return;
     if (levelTransitionRef.current) return;
 
     // Check dot collection
@@ -100,9 +198,19 @@ export const useGameLoop = () => {
       actions.collectPowerPellet(pelletAtPos);
     }
 
+    // Check fruit collection
+    if (fruit && fruit.visible) {
+      const fruitCollected = actions.collectFruit();
+      if (fruitCollected) {
+        playSound("fruit");
+      }
+    }
+
     // Check ghost collision
     const result = actions.handleGhostCollision();
     if (result.died) {
+      stopSiren();
+      sirenActiveRef.current = false;
       playSound("death");
       const currentState = useGameStore.getState().gameState;
       if (currentState.lives <= 1) {
@@ -126,13 +234,17 @@ export const useGameLoop = () => {
       !levelTransitionRef.current
     ) {
       levelTransitionRef.current = true;
+      stopSiren();
+      sirenActiveRef.current = false;
 
-      if (level === LEVEL_COUNT - 1) {
-        actions.updateGameState((prev) => ({
-          ...prev,
-          gameWon: true,
-          isPlaying: false,
-        }));
+      if (level >= LEVEL_COUNT - 1) {
+        // After all defined levels, keep playing with last level config
+        // Or you can set gameWon for finite game
+        useGameStore.setState({ isTransitioning: true });
+        setTimeout(() => {
+          levelTransitionRef.current = false;
+          actions.startGame(level + 1);
+        }, LEVEL_TRANSITION_DELAY);
       } else {
         useGameStore.setState({ isTransitioning: true });
         setTimeout(() => {
@@ -141,7 +253,7 @@ export const useGameLoop = () => {
         }, LEVEL_TRANSITION_DELAY);
       }
     }
-  }, [gameplay, entities, actions, playSound, canPlay]);
+  }, [gameplay, entities, actions, playSound, canPlay, stopSiren]);
 
   // Start/stop game loop
   useEffect(() => {
@@ -162,6 +274,13 @@ export const useGameLoop = () => {
       }
     };
   }, [gameplay.isPlaying, gameplay.gameOver, gameplay.gameWon, gameLoop]);
+
+  // Cleanup siren on unmount
+  useEffect(() => {
+    return () => {
+      stopSiren();
+    };
+  }, [stopSiren]);
 
   return null;
 };

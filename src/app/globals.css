@@ -351,3 +351,82 @@ body {
 .text-glow-green {
   text-shadow: 0 0 10px rgba(74, 222, 128, 0.5);
 }
+
+/* Ready screen pulse */
+@keyframes ready-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+.ready-text {
+  animation: ready-pulse 0.5s ease-in-out infinite;
+}
+
+/* Score float animation */
+@keyframes score-float {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-30px) scale(0.7);
+  }
+}
+
+/* Fruit bounce animation */
+@keyframes fruit-bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+.fruit-bounce {
+  animation: fruit-bounce 0.8s ease-in-out infinite;
+}
+
+/* Pulse animation for power mode */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* Death animation */
+@keyframes pacman-death {
+  0% {
+    transform: rotate(0deg) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: rotate(360deg) scale(0.5);
+    opacity: 0.5;
+  }
+  100% {
+    transform: rotate(720deg) scale(0);
+    opacity: 0;
+  }
+}
+
+.pacman-death {
+  animation: pacman-death 1.5s ease-out forwards;
+}
+
+/* Grid pattern - updated for 16px cells */
+.grid-pattern {
+  background-image: linear-gradient(rgba(41, 41, 163, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(41, 41, 163, 0.1) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
