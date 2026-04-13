@@ -23,14 +23,13 @@ const KEY_DIRECTIONS: Readonly<Record<string, Direction>> = {
 } as const;
 
 export const useInput = () => {
-  const { canPlay, isPlaying, gameOver, gameWon, isPaused, level, pacmanPos } =
+  const { canPlay, isPlaying, gameOver, gameWon, level, pacmanPos } =
     useGameStore(
       useShallow((s) => ({
         canPlay: selectCanPlay(s),
         isPlaying: s.gameState.isPlaying,
         gameOver: s.gameState.gameOver,
         gameWon: s.gameState.gameWon,
-        isPaused: s.isPaused,
         level: s.gameState.level,
         pacmanPos: s.pacmanPos,
       }))
@@ -118,7 +117,7 @@ export const useInput = () => {
 
       touchStartRef.current = { x: touch.clientX, y: touch.clientY };
     },
-    [isPaused, trySetDirection]
+    [canPlay, trySetDirection]
   );
 
   const handleTouchEnd = useCallback(() => {

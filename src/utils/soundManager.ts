@@ -76,10 +76,6 @@ export class SoundManager {
     return this.isMuted;
   }
 
-  public isSoundMuted(): boolean {
-    return this.isMuted;
-  }
-
   private playTone(
     frequency: number,
     duration: number,
@@ -117,13 +113,6 @@ export class SoundManager {
       : SOUND.EFFECTS.WAKA_FREQ_2;
     this.wakaAlternate = !this.wakaAlternate;
     this.playTone(freq, SOUND.EFFECTS.WAKA_DURATION, "sine", 0.3);
-  }
-
-  /**
-   * Legacy dot sound (calls waka)
-   */
-  public playDotSound(): void {
-    this.playWakaSound();
   }
 
   /**
@@ -423,7 +412,7 @@ export class SoundManager {
     if (this.sirenOscillator) {
       try {
         this.sirenOscillator.stop();
-      } catch (e) {
+      } catch {
         // Already stopped
       }
       this.sirenOscillator = null;
@@ -475,5 +464,3 @@ export class SoundManager {
     }
   }
 }
-
-export default SoundManager;

@@ -67,7 +67,6 @@ export const useSound = () => {
   return {
     playSound,
     toggleMute,
-    isMuted: isMutedRef.current,
     startSiren,
     stopSiren,
     startFrightenedSiren,

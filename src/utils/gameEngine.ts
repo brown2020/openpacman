@@ -17,10 +17,8 @@ import {
   CLYDE_CHASE_DISTANCE,
   DIRECTION_DELTAS,
   OPPOSITE_DIRECTION,
-  CELL_TYPES,
-  TUNNEL_ROW,
 } from "../constants/gameConstants";
-import { getNextMoveTowards, getRandomWanderTarget } from "./pathfinding";
+import { getNextMoveTowards } from "./pathfinding";
 import {
   isValidMove,
   getNextPosition,
@@ -469,42 +467,3 @@ export const eatGhost = (ghosts: Ghost[], eatenGhost: Ghost): Ghost[] =>
 export const getGhostEatScore = (ghostsEatenInChain: number): number =>
   200 * Math.pow(2, Math.min(ghostsEatenInChain, 3));
 
-/**
- * Update ghost dot counters and check for release
- */
-export const updateGhostDotCounters = (
-  ghosts: Ghost[],
-  globalDotCounter: number,
-  useGlobalCounter: boolean
-): Ghost[] =>
-  ghosts.map((ghost) => {
-    if (ghost.mode !== GhostMode.HOUSE) return ghost;
-
-    const config = GHOST_CONFIG[ghost.name];
-    const dotLimit = config?.dotLimit ?? 0;
-
-    // Check if ghost should be released based on dot counter
-    const shouldRelease = useGlobalCounter
-      ? globalDotCounter >= dotLimit
-      : ghost.dotCounter >= dotLimit;
-
-    if (shouldRelease) {
-      return {
-        ...ghost,
-        mode: GhostMode.CHASE,
-        position: GHOST_HOUSE_EXIT,
-        houseTimeLeft: 0,
-      };
-    }
-
-    return ghost;
-  });
-
-/**
- * Increment personal dot counter for a ghost
- */
-export const incrementGhostDotCounter = (ghosts: Ghost[]): Ghost[] =>
-  ghosts.map((ghost) => {
-    if (ghost.mode !== GhostMode.HOUSE) return ghost;
-    return { ...ghost, dotCounter: ghost.dotCounter + 1 };
-  });
