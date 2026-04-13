@@ -105,12 +105,6 @@ export const calculateDistance = (pos1: Position, pos2: Position): number =>
   Math.sqrt(Math.pow(pos2.x - pos1.x, 2) + Math.pow(pos2.y - pos1.y, 2));
 
 /**
- * Calculate Manhattan distance between two positions
- */
-export const manhattanDistance = (pos1: Position, pos2: Position): number =>
-  Math.abs(pos2.x - pos1.x) + Math.abs(pos2.y - pos1.y);
-
-/**
  * Get all positions of a specific cell type from a level layout
  */
 const getPositionsByCellType = (
@@ -140,50 +134,4 @@ export const getInitialDots = (level: Matrix<CellType>): Position[] =>
 export const getPowerPellets = (level: Matrix<CellType>): Position[] =>
   getPositionsByCellType(level, CELL_TYPES.POWER_PELLET);
 
-/**
- * Count total collectibles (dots + power pellets) in a maze
- */
-export const countTotalDots = (level: Matrix<CellType>): number =>
-  getInitialDots(level).length + getPowerPellets(level).length;
 
-/**
- * Check if a cell is passable (not a wall)
- */
-export const isPassable = (
-  x: number,
-  y: number,
-  maze: Matrix<CellType>,
-  isGhost = false
-): boolean => {
-  if (y < 0 || y >= maze.length || x < 0 || x >= maze[0].length) {
-    // Allow tunnel wrapping
-    if (y === TUNNEL_ROW) return true;
-    return false;
-  }
-  const cell = maze[y][x];
-  if (cell === CELL_TYPES.WALL) return false;
-  if (cell === CELL_TYPES.GHOST_DOOR && !isGhost) return false;
-  return true;
-};
-
-/**
- * Get valid directions from a position
- */
-export const getValidDirections = (
-  pos: Position,
-  maze: Matrix<CellType>,
-  isGhost = false
-): Direction[] => {
-  const directions: Direction[] = [];
-  const deltas = DIRECTION_DELTAS;
-
-  for (const [dir, delta] of Object.entries(deltas)) {
-    const newX = pos.x + delta.x;
-    const newY = pos.y + delta.y;
-    if (isPassable(newX, newY, maze, isGhost)) {
-      directions.push(dir as Direction);
-    }
-  }
-
-  return directions;
-};

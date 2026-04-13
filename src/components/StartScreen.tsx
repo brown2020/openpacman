@@ -236,5 +236,3 @@ export const StartScreen: React.FC<StartScreenProps> = ({
     </div>
   );
 };
-
-export default StartScreen;

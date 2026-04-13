@@ -1,5 +1,4 @@
 // levels/gameLevels.ts
-import { CELL_TYPES } from "../constants/gameConstants";
 import type { LevelConfig, CellType } from "../types/types";
 
 // Cell type legend:

@@ -15,7 +15,7 @@ import {
   MOUTH_ANIMATION_INTERVAL,
   LEVEL_TRANSITION_DELAY,
 } from "../constants/gameConstants";
-import { LEVEL_COUNT } from "../levels/gameLevels";
+
 
 export const useGameLoop = () => {
   // Batched state selectors
@@ -120,6 +120,8 @@ export const useGameLoop = () => {
     updateSirenSpeed,
   ]);
 
+  const gameLoopRef = useRef<((currentTime: number) => void) | null>(null);
+
   const gameLoop = useCallback(
     (currentTime: number) => {
       const { isTransitioning, isReady } = gameplay;
@@ -131,12 +133,12 @@ export const useGameLoop = () => {
           : 16;
         lastTimeRef.current = currentTime;
         actions.tick(Math.min(deltaTime, 100));
-        animationFrameRef.current = requestAnimationFrame(gameLoop);
+        animationFrameRef.current = requestAnimationFrame((t) => gameLoopRef.current?.(t));
         return;
       }
 
       if (!canPlay || isTransitioning) {
-        animationFrameRef.current = requestAnimationFrame(gameLoop);
+        animationFrameRef.current = requestAnimationFrame((t) => gameLoopRef.current?.(t));
         return;
       }
 
@@ -171,10 +173,15 @@ export const useGameLoop = () => {
         mouthAnimAccumulator.current = 0;
       }
 
-      animationFrameRef.current = requestAnimationFrame(gameLoop);
+      animationFrameRef.current = requestAnimationFrame((t) => gameLoopRef.current?.(t));
     },
     [gameplay, actions, canPlay]
   );
+
+  // Keep ref in sync with latest gameLoop
+  useEffect(() => {
+    gameLoopRef.current = gameLoop;
+  }, [gameLoop]);
 
   // Collision and collection effect
   useEffect(() => {
@@ -237,29 +244,17 @@ export const useGameLoop = () => {
       stopSiren();
       sirenActiveRef.current = false;
 
-      if (level >= LEVEL_COUNT - 1) {
-        // After all defined levels, keep playing with last level config
-        // Or you can set gameWon for finite game
-        useGameStore.setState({ isTransitioning: true });
-        setTimeout(() => {
-          levelTransitionRef.current = false;
-          actions.startGame(level + 1);
-        }, LEVEL_TRANSITION_DELAY);
-      } else {
-        useGameStore.setState({ isTransitioning: true });
-        setTimeout(() => {
-          levelTransitionRef.current = false;
-          actions.startGame(level + 1);
-        }, LEVEL_TRANSITION_DELAY);
-      }
+      useGameStore.setState({ isTransitioning: true });
+      setTimeout(() => {
+        levelTransitionRef.current = false;
+        actions.startGame(level + 1);
+      }, LEVEL_TRANSITION_DELAY);
     }
   }, [gameplay, entities, actions, playSound, canPlay, stopSiren]);
 
   // Start/stop game loop
   useEffect(() => {
-    const { isPlaying, gameOver, gameWon } = gameplay;
-
-    if (isPlaying && !gameOver && !gameWon) {
+    if (gameplay.isPlaying && !gameplay.gameOver && !gameplay.gameWon) {
       lastTimeRef.current = 0;
       pacmanMoveAccumulator.current = 0;
       ghostMoveAccumulator.current = 0;
@@ -273,7 +268,7 @@ export const useGameLoop = () => {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [gameplay.isPlaying, gameplay.gameOver, gameplay.gameWon, gameLoop]);
+  }, [gameplay, gameLoop]);
 
   // Cleanup siren on unmount
   useEffect(() => {

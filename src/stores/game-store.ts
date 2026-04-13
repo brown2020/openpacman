@@ -6,7 +6,6 @@ import {
   isValidMove,
   getNextPosition,
   getPowerPellets,
-  countTotalDots,
   wrapTunnel,
 } from "../utils/gameUtils";
 import {
@@ -32,7 +31,6 @@ import {
   FRUIT_VISIBLE_DURATION,
   FRUIT_SPAWN_POSITION,
   READY_SCREEN_DURATION,
-  GHOST_MOVEMENT_INTERVAL,
 } from "../constants/gameConstants";
 import type {
   Direction,
@@ -40,12 +38,11 @@ import type {
   GameState,
   Ghost,
   Position,
-  Fruit,
   FruitType,
   LevelConfig,
   ScorePopup,
 } from "../types/types";
-import { GameMode, GhostMode } from "../types/types";
+import { GameMode } from "../types/types";
 
 export interface GameStoreState {
   // Game state
@@ -337,7 +334,7 @@ export const useGameStore = create<GameStoreState>()(
       },
 
       collectDot: (dotPos: Position) => {
-        const { dots, gameState, ghosts, levelConfig, wakaAlternate } = get();
+        const { dots, gameState, levelConfig, wakaAlternate } = get();
         const remainingDots = removeAtPosition(dots, dotPos);
 
         if (remainingDots.length < dots.length) {
@@ -553,7 +550,7 @@ export const useGameStore = create<GameStoreState>()(
 
       tick: (deltaTime: number) => {
         const state = get();
-        const { gameState, isPaused, ghosts, levelConfig } = state;
+        const { gameState, isPaused, ghosts } = state;
 
         if (
           !gameState.isPlaying ||
@@ -616,7 +613,7 @@ export const useGameStore = create<GameStoreState>()(
         // Update scatter/chase mode timer (only when not in power mode)
         if (!gameState.powerPelletActive) {
           const modeTiming = getModeTiming(gameState.level);
-          let newModeTime = gameState.modeTimeRemaining - deltaTime;
+          const newModeTime = gameState.modeTimeRemaining - deltaTime;
 
           if (newModeTime <= 0) {
             // Switch modes

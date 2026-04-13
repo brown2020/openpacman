@@ -4,7 +4,6 @@ import {
   CELL_TYPES,
   DIRECTIONS,
   DIRECTION_DELTAS,
-  OPPOSITE_DIRECTION,
 } from "../constants/gameConstants";
 
 interface PathNode {
@@ -190,31 +189,3 @@ export const getNextMoveTowards = (
   return currentDirection;
 };
 
-/**
- * Get a random valid position to wander to (for frightened ghosts)
- */
-export const getRandomWanderTarget = (
-  current: Position,
-  maze: Matrix<CellType>,
-  previousDirection: Direction
-): Position => {
-  const neighbors = getNeighbors(current, maze);
-  const oppositeDir = OPPOSITE_DIRECTION[previousDirection];
-  const oppositeDelta = DIRECTION_DELTAS[oppositeDir];
-
-  // Avoid going back the way we came
-  const filteredNeighbors = neighbors.filter((n) => {
-    const dx = n.x - current.x;
-    const dy = n.y - current.y;
-    return dx !== oppositeDelta.x || dy !== oppositeDelta.y;
-  });
-
-  const validNeighbors =
-    filteredNeighbors.length > 0 ? filteredNeighbors : neighbors;
-
-  if (validNeighbors.length > 0) {
-    return validNeighbors[Math.floor(Math.random() * validNeighbors.length)];
-  }
-
-  return current;
-};
