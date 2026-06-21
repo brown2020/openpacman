@@ -11,23 +11,23 @@
 
 ## Current State
 
-- Phase: Preflight and Repo Docs
-- Task: T-001
-- Status: In Progress
-- Last command: npm run lint
-- Last result: Passed after `npm ci` refreshed node_modules from package-lock.json
-- Last pushed commit: 93465ef14555284ecbb3a4260690f557d909f2cc
-- Branch sync: dev matches origin/dev at 93465ef before preflight report edits
-- Working tree: In-scope docs/run-report edits only
-- Next action: Inspect diff, commit, dry-run push, push, fetch, and confirm dev matches origin/dev
+- Phase: Baseline Validation
+- Task: T-002
+- Status: Verification Passed
+- Last command: npm audit --audit-level=low
+- Last result: Failed with 5 dependency advisories; lint and build passed
+- Last pushed commit: cbb92d86d7cd2b86bd09ee1808d35f389d948f87
+- Branch sync: dev matches origin/dev at cbb92d8 before baseline report edits
+- Working tree: In-scope baseline report and queue updates only
+- Next action: Commit, dry-run push, push, fetch, and confirm dev matches origin/dev
 
 ## Dirty File Classification
 
 | Path | Classification | Owner/Reason |
 | --- | --- | --- |
-| AGENTS.md | Safe-to-commit | Repo guidance created by Preflight and Repo Docs |
-| SPEC.md | Safe-to-commit | Current-state spec created by Preflight and Repo Docs |
-| agent-runs/2026-06-20-codebase-pass/* | Safe-to-commit | Required run reports and workflow state |
+| agent-runs/2026-06-20-codebase-pass/02-baseline-validation.md | Safe-to-commit | Baseline validation report |
+| agent-runs/2026-06-20-codebase-pass/task-queue.md | Safe-to-commit | Baseline status and package-cleanup evidence |
+| agent-runs/2026-06-20-codebase-pass/run-state.md | Safe-to-commit | Resume ledger update |
 
 ## Blockers
 
