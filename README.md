@@ -1,13 +1,13 @@
 # OpenPacman 🎮
 
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPLv3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0.en.html)
-[![Next.js](https://img.shields.io/badge/Next.js-16.1.1-black.svg)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-19.2.3-61DAFB.svg)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.9.3-3178C6.svg)](https://www.typescriptlang.org/)
-[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-4.1.18-06B6D4.svg)](https://tailwindcss.com/)
-[![Zustand](https://img.shields.io/badge/Zustand-5.0.9-443E38.svg)](https://zustand-demo.pmnd.rs/)
+[![Next.js](https://img.shields.io/badge/Next.js-16.2.9-black.svg)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19.2.7-61DAFB.svg)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6.0.3-3178C6.svg)](https://www.typescriptlang.org/)
+[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-4.3.1-06B6D4.svg)](https://tailwindcss.com/)
+[![Zustand](https://img.shields.io/badge/Zustand-5.0.14-443E38.svg)](https://zustand-demo.pmnd.rs/)
 
-A modern, open-source implementation of the classic Pac-Man arcade game built with Next.js 16.1.1, React 19.2.3, TypeScript 5.9.3, and TailwindCSS 4.1.18. Features authentic ghost AI behaviors, power pellet mechanics, responsive touch controls, and retro arcade aesthetics.
+A modern, open-source implementation of the classic Pac-Man arcade game built with Next.js 16.2.9, React 19.2.7, TypeScript 6.0.3, and TailwindCSS 4.3.1. Features authentic ghost AI behaviors, power pellet mechanics, responsive touch controls, and retro arcade aesthetics.
 
 **[🎮 Play Now](https://openpacman.vercel.app/)** | **[📖 Documentation](#-architecture)** | **[🤝 Contributing](#-contributing)**
 
@@ -110,24 +110,24 @@ Open [http://localhost:3000](http://localhost:3000) to play!
 
 | Package                                  | Version | Purpose                         |
 | ---------------------------------------- | ------- | ------------------------------- |
-| [Next.js](https://nextjs.org/)           | 16.1.1  | React framework with App Router |
-| [React](https://react.dev/)              | 19.2.3  | UI component library            |
-| [Zustand](https://zustand-demo.pmnd.rs/) | 5.0.9   | Lightweight state management    |
+| [Next.js](https://nextjs.org/)           | 16.2.9  | React framework with App Router |
+| [React](https://react.dev/)              | 19.2.7  | UI component library            |
+| [Zustand](https://zustand-demo.pmnd.rs/) | 5.0.14  | Lightweight state management    |
 
 ### Styling & Build
 
 | Package                                       | Version | Purpose                     |
 | --------------------------------------------- | ------- | --------------------------- |
-| [TailwindCSS](https://tailwindcss.com/)       | 4.1.18  | Utility-first CSS framework |
-| [PostCSS](https://postcss.org/)               | 8.5.6   | CSS processing              |
-| [TypeScript](https://www.typescriptlang.org/) | 5.9.3   | Static type checking        |
+| [TailwindCSS](https://tailwindcss.com/)       | 4.3.1   | Utility-first CSS framework |
+| [PostCSS](https://postcss.org/)               | 8.5.15  | CSS processing              |
+| [TypeScript](https://www.typescriptlang.org/) | 6.0.3   | Static type checking        |
 
 ### Development
 
 | Package                                                                       | Version | Purpose              |
 | ----------------------------------------------------------------------------- | ------- | -------------------- |
-| [ESLint](https://eslint.org/)                                                 | 9.39.2  | Code linting         |
-| [eslint-config-next](https://nextjs.org/docs/app/api-reference/config/eslint) | 16.1.1  | Next.js ESLint rules |
+| [ESLint](https://eslint.org/)                                                 | 10.5.0  | Code linting         |
+| [eslint-config-next](https://nextjs.org/docs/app/api-reference/config/eslint) | 16.2.9  | Next.js ESLint rules |
 
 ---
 
@@ -181,7 +181,8 @@ openpacman/
 │
 ├── public/                     # Static assets
 ├── next.config.ts              # Next.js configuration
-├── tailwind.config.ts          # Tailwind configuration
+├── postcss.config.mjs          # Tailwind/PostCSS configuration
+├── eslint.config.mjs           # ESLint flat configuration
 ├── tsconfig.json               # TypeScript configuration
 └── package.json                # Dependencies & scripts
 ```
@@ -288,7 +289,7 @@ export const PACMAN_MOVE_INTERVAL = 100; // ms
 export const GHOST_MOVEMENT_INTERVAL = 300; // ms
 
 // Ghost frightened duration
-export const GHOST_FRIGHTENED_DURATION = 8000; // ms
+export const GHOST_FRIGHTENED_DURATION = 6000; // ms
 ```
 
 ### Modifying Ghost Behavior
