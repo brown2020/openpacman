@@ -6,7 +6,7 @@ Name: Codex
 
 ## Scope
 
-Fixed two P2 findings: metadata references to missing assets and an unowned level-transition timeout in the game loop.
+Fixed three P2 findings: metadata references to missing assets, an unowned level-transition timeout in the game loop, and README/dependency documentation drift.
 
 ## Inputs
 
@@ -15,7 +15,10 @@ Reports, files, or commands used:
 - agent-runs/2026-06-20-codebase-pass/03-findings-backlog.md
 - src/app/layout.tsx
 - src/hooks/useGameLoop.ts
+- README.md
+- deps-verified.md
 - `rg` verification for metadata/timeout references
+- `rg` verification for stale README/dependency strings
 - `npm run lint`
 - `npm run build`
 
@@ -39,9 +42,9 @@ Reports, files, or commands used:
 ## Run State
 
 - Current phase: Execute Fixes and Improvements
-- Current task: T-005 / F-002 and T-006 / F-003
-- Last pushed commit: f4ce2a5626b6276d8f2aa352ab0af2eb7c8a3f76
-- Next action: Commit/push execution checkpoint, then update README drift.
+- Current task: T-007 / F-004
+- Last pushed commit: a5c53639f6ff6acc96b8d6d8ead35e704d915244
+- Next action: Commit/push documentation checkpoint, then run review/stabilization.
 - Blockers: None.
 
 ## Commands Run
@@ -50,12 +53,15 @@ Reports, files, or commands used:
 rg -n "manifest\.json|apple-touch-icon|levelTransitionTimeoutRef|clearLevelTransitionTimeout|setTimeout" src/app/layout.tsx src/hooks/useGameLoop.ts public
 npm run lint
 npm run build
+rg -n "16\.1\.1|19\.2\.3|5\.9\.3|4\.1\.18|5\.0\.9|9\.39\.2|tailwind\.config\.ts|GHOST_FRIGHTENED_DURATION = 8000|Dependencies Verified" README.md deps-verified.md
+npm run lint
 ```
 
 ## Findings
 
 - F-002: `src/app/layout.tsx` declared metadata links for `/manifest.json` and `/apple-touch-icon.png`, but the repo does not ship those assets.
 - F-003: `src/hooks/useGameLoop.ts` scheduled the level-transition `setTimeout` without a timeout ref or cleanup path.
+- F-004: README dependency versions and project tree were stale after package cleanup; `deps-verified.md` contained a literal `\n` and stale verification date.
 
 ## Changes Made
 
@@ -63,6 +69,8 @@ npm run build
 - Added `levelTransitionTimeoutRef` and `clearLevelTransitionTimeout` in `src/hooks/useGameLoop.ts`.
 - Clear any pending level-transition timeout before scheduling a new one.
 - Clear pending level-transition timeout when gameplay stops, game over/game won is reached, or the hook unmounts.
+- Updated README badges, dependency tables, project tree, and a stale configuration snippet.
+- Replaced `deps-verified.md` with current package-update verification notes.
 
 ## Verification
 
@@ -71,6 +79,7 @@ Checks performed and results:
 | Command | Result | Notes |
 | --- | --- | --- |
 | `rg -n "manifest\.json|apple-touch-icon|levelTransitionTimeoutRef|clearLevelTransitionTimeout|setTimeout" ...` | Pass | Missing asset references are gone; timeout ownership/cleanup references are present. |
+| `rg -n "16\.1\.1|19\.2\.3|5\.9\.3|4\.1\.18|5\.0\.9|9\.39\.2|tailwind\.config\.ts|GHOST_FRIGHTENED_DURATION = 8000|Dependencies Verified" README.md deps-verified.md` | Pass | Only the intended `# Dependencies Verified` heading remains. |
 | `npm run lint` | Pass | ESLint clean. |
 | `npm run build` | Pass | Next.js 16.2.9 production build and TypeScript step passed. |
 
@@ -105,7 +114,7 @@ Checks performed and results:
 ## Stabilization
 
 - Cycle: Not started
-- Completion criteria status: F-002 and F-003 resolved; docs/dead-code/review remain.
+- Completion criteria status: F-002, F-003, and F-004 resolved; dead-code/review remain.
 - Remaining blockers: None.
 
 ## Risks
@@ -119,4 +128,4 @@ Checks performed and results:
 
 ## Recommended Next Step
 
-Commit and push the execution checkpoint, then update README drift after package versions settled.
+Commit and push the documentation checkpoint, then run review/stabilization.
