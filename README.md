@@ -89,7 +89,7 @@ Open [http://localhost:3000](http://localhost:3000) to play!
 2. **Avoid ghosts** - Contact means losing a life
 3. **Collect power pellets** (large flashing dots) to turn ghosts blue
 4. **Eat blue ghosts** for bonus points (200 → 400 → 800 → 1600)
-5. **Complete all levels** to achieve victory!
+5. **Clear each maze** to advance into higher difficulty play!
 
 ### Scoring
 
