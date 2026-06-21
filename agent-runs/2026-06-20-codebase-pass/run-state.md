@@ -11,23 +11,24 @@
 
 ## Current State
 
-- Phase: Review
-- Task: T-010 / Review and Stabilization
+- Phase: Integrator
+- Task: Final report
 - Status: Verification Passed
 - Last command: npm run build
-- Last result: Passed during review after `npm ci`
-- Last pushed commit: a1c926282bd54cdcf3466f385e99a1d8f22bceeb
-- Branch sync: dev matches origin/dev at a1c9262 before review report/docs edit
-- Working tree: In-scope README review correction and report/state updates only
-- Next action: Commit, dry-run push, push, fetch, and confirm dev matches origin/dev
+- Last result: Passed final stabilization build
+- Last pushed commit: 2868906a9c54dc0ce500f1c1e98d771f73a8023c
+- Branch sync: dev matches origin/dev at 2868906 before final report edits
+- Working tree: In-scope final report/state updates only
+- Next action: Commit final reports, dry-run push, push, fetch, and confirm dev matches origin/dev
 
 ## Dirty File Classification
 
 | Path | Classification | Owner/Reason |
 | --- | --- | --- |
-| README.md | Safe-to-commit | Review correction for current level progression wording |
-| agent-runs/2026-06-20-codebase-pass/06-review.md | Safe-to-commit | Review report |
-| agent-runs/2026-06-20-codebase-pass/task-queue.md | Safe-to-commit | Review status |
+| agent-runs/2026-06-20-codebase-pass/07-stabilization-loop.md | Safe-to-commit | Stabilization report |
+| agent-runs/2026-06-20-codebase-pass/08-integrator.md | Safe-to-commit | Integrator report |
+| agent-runs/2026-06-20-codebase-pass/final-report.md | Safe-to-commit | Final report |
+| agent-runs/2026-06-20-codebase-pass/task-queue.md | Safe-to-commit | Final status |
 | agent-runs/2026-06-20-codebase-pass/run-state.md | Safe-to-commit | Resume ledger update |
 
 ## Blockers
