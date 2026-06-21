@@ -42,9 +42,17 @@ export const useGameLoop = () => {
   const ghostMoveAccumulator = useRef<number>(0);
   const mouthAnimAccumulator = useRef<number>(0);
   const levelTransitionRef = useRef<boolean>(false);
+  const levelTransitionTimeoutRef = useRef<number | null>(null);
   const introPlayedRef = useRef<boolean>(false);
   const sirenActiveRef = useRef<boolean>(false);
   const prevPowerModeRef = useRef<boolean>(false);
+
+  const clearLevelTransitionTimeout = useCallback(() => {
+    if (levelTransitionTimeoutRef.current !== null) {
+      window.clearTimeout(levelTransitionTimeoutRef.current);
+      levelTransitionTimeoutRef.current = null;
+    }
+  }, []);
 
   // Handle intro jingle when game starts
   useEffect(() => {
@@ -245,12 +253,22 @@ export const useGameLoop = () => {
       sirenActiveRef.current = false;
 
       useGameStore.setState({ isTransitioning: true });
-      setTimeout(() => {
+      clearLevelTransitionTimeout();
+      levelTransitionTimeoutRef.current = window.setTimeout(() => {
+        levelTransitionTimeoutRef.current = null;
         levelTransitionRef.current = false;
         actions.startGame(level + 1);
       }, LEVEL_TRANSITION_DELAY);
     }
-  }, [gameplay, entities, actions, playSound, canPlay, stopSiren]);
+  }, [
+    gameplay,
+    entities,
+    actions,
+    playSound,
+    canPlay,
+    stopSiren,
+    clearLevelTransitionTimeout,
+  ]);
 
   // Start/stop game loop
   useEffect(() => {
@@ -270,12 +288,25 @@ export const useGameLoop = () => {
     };
   }, [gameplay, gameLoop]);
 
+  useEffect(() => {
+    if (!gameplay.isPlaying || gameplay.gameOver || gameplay.gameWon) {
+      clearLevelTransitionTimeout();
+      levelTransitionRef.current = false;
+    }
+  }, [
+    gameplay.isPlaying,
+    gameplay.gameOver,
+    gameplay.gameWon,
+    clearLevelTransitionTimeout,
+  ]);
+
   // Cleanup siren on unmount
   useEffect(() => {
     return () => {
+      clearLevelTransitionTimeout();
       stopSiren();
     };
-  }, [stopSiren]);
+  }, [clearLevelTransitionTimeout, stopSiren]);
 
   return null;
 };
