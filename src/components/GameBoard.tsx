@@ -13,6 +13,8 @@ import { CELL_SIZE } from "../constants/gameConstants";
 import { WallsLayer } from "./board/WallsLayer";
 import { DotsLayer } from "./board/DotsLayer";
 import { EntitiesLayer } from "./board/EntitiesLayer";
+import { BoardOverlays } from "./board/BoardOverlays";
+import { ScorePopupsLayer } from "./board/ScorePopupsLayer";
 import { Fruit } from "./Fruit";
 
 interface GameBoardProps {
@@ -48,7 +50,7 @@ export const GameBoard: React.FC<GameBoardProps> = memo(
     isPowerMode,
     isReady = false,
     fruit = null,
-    scorePopups = [],
+    scorePopups,
     isTransitioning = false,
   }) => {
     if (!level || level.length === 0) return null;
@@ -58,7 +60,6 @@ export const GameBoard: React.FC<GameBoardProps> = memo(
 
     return (
       <div className="relative">
-        {/* Game board container with CRT effect */}
         <div
           className={`relative rounded-lg overflow-hidden crt-glow scanlines ${
             isTransitioning ? "level-flash" : ""
@@ -69,20 +70,17 @@ export const GameBoard: React.FC<GameBoardProps> = memo(
             background:
               "linear-gradient(180deg, #0D0D2B 0%, #000000 50%, #0D0D2B 100%)",
           }}
+          role="img"
+          aria-label="Pac-Man game board"
         >
-          {/* Grid pattern overlay */}
           <div
             className="absolute inset-0 grid-pattern pointer-events-none opacity-30"
             style={{ zIndex: 1 }}
           />
 
-          {/* Walls Layer */}
           <WallsLayer level={level} />
-
-          {/* Dots and Power Pellets Layer */}
           <DotsLayer dots={dots} powerPellets={powerPellets} />
 
-          {/* Fruit Layer */}
           {fruit && fruit.visible && (
             <svg
               className="absolute inset-0 pointer-events-none"
@@ -94,7 +92,6 @@ export const GameBoard: React.FC<GameBoardProps> = memo(
             </svg>
           )}
 
-          {/* Entities Layer (Ghosts + Pacman) */}
           <EntitiesLayer
             ghosts={ghosts}
             pacmanPos={pacmanPos}
@@ -104,86 +101,15 @@ export const GameBoard: React.FC<GameBoardProps> = memo(
             isPowerMode={isPowerMode}
           />
 
-          {/* Score Popups */}
-          {scorePopups.map((popup, index) => (
-            <div
-              key={`popup-${index}-${popup.position.x}-${popup.position.y}`}
-              className="absolute text-white font-bold text-sm score-popup"
-              style={{
-                left: popup.position.x * CELL_SIZE,
-                top: popup.position.y * CELL_SIZE - 10,
-                zIndex: 100,
-                textShadow: "0 0 4px #00FFFF",
-                animation: "score-float 1s ease-out forwards",
-              }}
-            >
-              {popup.points}
-            </div>
-          ))}
+          <ScorePopupsLayer scorePopups={scorePopups} />
 
-          {/* READY! Screen */}
-          {isReady && !gameOver && !gameWon && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center z-50">
-              <div
-                className="text-3xl font-bold text-yellow-400 tracking-wider ready-text"
-                style={{
-                  textShadow: "0 0 20px rgba(255, 255, 0, 0.8)",
-                  animation: "ready-pulse 0.5s ease-in-out infinite",
-                }}
-              >
-                READY!
-              </div>
-            </div>
-          )}
-
-          {/* Pause Overlay */}
-          {isPaused && !gameOver && !gameWon && !isReady && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-50">
-              <div className="pause-text text-4xl font-bold text-yellow-400 mb-4 tracking-wider">
-                PAUSED
-              </div>
-              <div className="text-lg text-gray-400">
-                Press ESC or P to resume
-              </div>
-            </div>
-          )}
-
-          {/* Game Over / Level Complete Overlay */}
-          {(gameOver || gameWon) && (
-            <div
-              className={`absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-50 ${
-                gameOver ? "game-over-shake" : "level-flash"
-              }`}
-            >
-              <div
-                className={`text-4xl font-bold mb-4 tracking-wider ${
-                  gameOver ? "text-red-500" : "text-green-400"
-                }`}
-                style={{
-                  textShadow: gameOver
-                    ? "0 0 20px rgba(255, 0, 0, 0.8)"
-                    : "0 0 20px rgba(0, 255, 0, 0.8)",
-                }}
-              >
-                {gameOver ? "GAME OVER" : "LEVEL COMPLETE!"}
-              </div>
-              <div className="text-xl text-gray-300">
-                {gameOver ? "Press Start to try again" : "Get ready..."}
-              </div>
-            </div>
-          )}
-
-          {/* Power Mode Overlay Effect */}
-          {isPowerMode && !gameOver && !gameWon && !isReady && (
-            <div
-              className="absolute inset-0 pointer-events-none z-5"
-              style={{
-                background:
-                  "radial-gradient(circle at center, transparent 30%, rgba(0, 0, 255, 0.1) 100%)",
-                animation: "pulse 0.5s ease-in-out infinite",
-              }}
-            />
-          )}
+          <BoardOverlays
+            gameOver={gameOver}
+            gameWon={gameWon}
+            isPaused={isPaused}
+            isReady={isReady}
+            isPowerMode={isPowerMode}
+          />
         </div>
       </div>
     );

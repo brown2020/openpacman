@@ -127,6 +127,7 @@ export type Matrix<T> = T[][];
 
 // Score popup for displaying points
 export interface ScorePopup {
+  id: string;
   position: Position;
   points: number;
   timeRemaining: number;

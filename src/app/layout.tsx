@@ -16,8 +16,18 @@ const geistMono = localFont({
 
 export const metadata: Metadata = {
   title: "OpenPacman - Classic Arcade Game",
-  description: "A modern, open-source Pac-Man clone built with Next.js, TypeScript, and Tailwind CSS. Play the classic arcade game in your browser!",
-  keywords: ["pacman", "pac-man", "arcade", "game", "retro", "classic", "browser game", "next.js"],
+  description:
+    "A modern, open-source Pac-Man clone built with Next.js, TypeScript, and Tailwind CSS. Play the classic arcade game in your browser!",
+  keywords: [
+    "pacman",
+    "pac-man",
+    "arcade",
+    "game",
+    "retro",
+    "classic",
+    "browser game",
+    "next.js",
+  ],
   authors: [{ name: "OpenPacman Contributors" }],
   openGraph: {
     title: "OpenPacman - Classic Arcade Game",
@@ -43,8 +53,6 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   themeColor: "#0a0a0a",
 };
 
@@ -55,10 +63,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black`}
       >

@@ -2,6 +2,8 @@ import React, { memo, useMemo } from "react";
 import type { Position } from "../../types/types";
 import { CELL_SIZE } from "../../constants/gameConstants";
 
+const EMPTY_POWER_PELLETS: Position[] = [];
+
 interface DotsLayerProps {
   dots: Position[];
   powerPellets?: Position[];
@@ -40,7 +42,7 @@ const PowerPellet: React.FC<{ position: Position }> = memo(({ position }) => (
 PowerPellet.displayName = "PowerPellet";
 
 export const DotsLayer: React.FC<DotsLayerProps> = memo(
-  ({ dots, powerPellets = [] }) => {
+  ({ dots, powerPellets = EMPTY_POWER_PELLETS }) => {
     // Memoize dot elements
     const dotElements = useMemo(
       () =>

@@ -43,9 +43,8 @@ local high-score persistence.
 
 ## Validation
 
-- `npm run lint` is the configured lint gate.
-- `npm run build` is the configured production build gate.
-- No unit, integration, or browser test script is currently configured.
+- `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build` are the CI gates.
+- Unit tests cover route security (no API/server actions) and position helpers.
 - Existing docs mention Node.js 20.9.0+ as the runtime requirement.
 
 ## Quality Risks

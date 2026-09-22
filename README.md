@@ -1,13 +1,13 @@
 # OpenPacman 🎮
 
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPLv3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0.en.html)
-[![Next.js](https://img.shields.io/badge/Next.js-16.2.9-black.svg)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-19.2.7-61DAFB.svg)](https://react.dev/)
+[![Next.js](https://img.shields.io/badge/Next.js-16.3.6-black.svg)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19.3.0-61DAFB.svg)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-6.0.3-3178C6.svg)](https://www.typescriptlang.org/)
-[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-4.3.1-06B6D4.svg)](https://tailwindcss.com/)
-[![Zustand](https://img.shields.io/badge/Zustand-5.0.14-443E38.svg)](https://zustand-demo.pmnd.rs/)
+[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-4.3.3-06B6D4.svg)](https://tailwindcss.com/)
+[![Zustand](https://img.shields.io/badge/Zustand-5.0.15-443E38.svg)](https://zustand-demo.pmnd.rs/)
 
-A modern, open-source implementation of the classic Pac-Man arcade game built with Next.js 16.2.9, React 19.2.7, TypeScript 6.0.3, and TailwindCSS 4.3.1. Features authentic ghost AI behaviors, power pellet mechanics, responsive touch controls, and retro arcade aesthetics.
+A modern, open-source implementation of the classic Pac-Man arcade game built with Next.js 16.3.6, React 19.3.0, TypeScript 6.0.3, and TailwindCSS 4.3.3. Features authentic ghost AI behaviors, power pellet mechanics, responsive touch controls, and retro arcade aesthetics.
 
 **[🎮 Play Now](https://openpacman.vercel.app/)** | **[📖 Documentation](#-architecture)** | **[🤝 Contributing](#-contributing)**
 
@@ -71,6 +71,8 @@ Open [http://localhost:3000](http://localhost:3000) to play!
 | `npm run build` | Create optimized production build        |
 | `npm run start` | Start production server                  |
 | `npm run lint`  | Run ESLint for code quality              |
+| `npm run typecheck` | TypeScript `--noEmit` check           |
+| `npm test`      | Unit tests (route security + helpers)    |
 
 ---
 

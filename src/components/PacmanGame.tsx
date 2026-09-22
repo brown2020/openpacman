@@ -96,8 +96,8 @@ export const PacmanGame: React.FC = () => {
       className="flex flex-col items-center justify-center min-h-screen arcade-bg select-none p-4"
       onTouchStart={handleTouchStart}
     >
-      {/* Header Stats */}
-      <div className="flex flex-wrap justify-center gap-6 mb-4 text-center">
+      <header className="flex flex-wrap justify-center gap-6 mb-4 text-center">
+        <h1 className="sr-only">OpenPacman — Level {gameState.level + 1}</h1>
         <div className="flex flex-col items-center">
           <span className="text-xs text-gray-500 uppercase tracking-wider mb-1">
             1UP
@@ -124,7 +124,7 @@ export const PacmanGame: React.FC = () => {
             {gameState.level + 1}
           </span>
         </div>
-      </div>
+      </header>
 
       {/* Game Board */}
       <GameBoard
@@ -149,8 +149,14 @@ export const PacmanGame: React.FC = () => {
       <div className="flex justify-between w-full max-w-md mt-4 px-2">
         {/* Lives (left side) */}
         <div className="flex gap-1 items-center">
-          {Array.from({ length: Math.max(0, gameState.lives - 1) }).map((_, i) => (
-            <svg key={i} width="18" height="18" viewBox="0 0 24 24">
+          {Array.from({ length: Math.max(0, gameState.lives - 1) }, (_, slot) => (
+            <svg
+              key={`extra-life-slot-${slot}`}
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
               <circle cx="12" cy="12" r="10" fill="#FFE135" />
               <path d="M 12,12 L 22,8 A 10,10 0 1,0 22,16 Z" fill="#000" />
             </svg>
@@ -159,8 +165,12 @@ export const PacmanGame: React.FC = () => {
 
         {/* Fruits eaten (right side) */}
         <div className="flex gap-1 items-center">
-          {gameState.fruitEaten.slice(-7).map((fruit, i) => (
-            <span key={i} className="text-base">
+          {gameState.fruitEaten.slice(-7).map((fruit, slot) => (
+            <span
+              key={`fruit-eaten-${fruit}-n${gameState.fruitEaten.length - 7 + slot}`}
+              className="text-base"
+              aria-hidden="true"
+            >
               {FRUIT_ICONS[fruit]}
             </span>
           ))}
@@ -171,7 +181,7 @@ export const PacmanGame: React.FC = () => {
       <div className="w-full max-w-md mt-2">
         <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
           <div
-            className="h-full rounded-full transition-all duration-300"
+            className="h-full rounded-full transition-[width] duration-300"
             style={{
               width: `${progress}%`,
               background: "linear-gradient(90deg, #FFE135 0%, #FF6B00 100%)",
@@ -197,9 +207,11 @@ export const PacmanGame: React.FC = () => {
         </div>
 
         <button
+          type="button"
           onClick={togglePause}
+          aria-pressed={isPaused}
           className="md:hidden px-4 py-2 text-xs text-gray-400 border border-gray-700 rounded-lg
-                     hover:bg-gray-800 active:bg-gray-700 transition-colors"
+                     hover:bg-gray-800 active:bg-gray-700 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-yellow-400"
         >
           {isPaused ? "Resume" : "Pause"}
         </button>

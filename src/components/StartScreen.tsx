@@ -1,5 +1,6 @@
 // components/StartScreen.tsx
 import React from "react";
+import Link from "next/link";
 import type { GameScore } from "../types/types";
 import { GHOST_COLORS } from "../constants/gameConstants";
 
@@ -143,9 +144,11 @@ export const StartScreen: React.FC<StartScreenProps> = ({
 
         {/* Start Button */}
         <button
+          type="button"
           onClick={onStart}
           className="neon-button mb-8 px-8 py-4 text-xl md:text-2xl rounded-lg
-                     text-white tracking-wider uppercase font-arcade"
+                     text-white tracking-wider uppercase font-arcade
+                     focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-yellow-400"
         >
           {gameOver || gameWon ? "Play Again" : "Start Game"}
         </button>
@@ -224,6 +227,15 @@ export const StartScreen: React.FC<StartScreenProps> = ({
             </div>
           </div>
         </div>
+
+        <nav aria-label="Site" className="mt-6 flex gap-4 text-sm text-gray-500">
+          <Link
+            href="/about"
+            className="underline hover:text-yellow-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-yellow-400"
+          >
+            About
+          </Link>
+        </nav>
 
         {/* Footer */}
         <div className="mt-8 text-center text-gray-600 text-xs">

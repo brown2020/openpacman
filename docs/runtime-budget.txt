@@ -1,0 +1,3 @@
+budget_bytes=921600
+critical_path=start_game
+measure=sum .next/static/**/*.js after production build

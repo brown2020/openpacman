@@ -20,11 +20,13 @@ npm run dev
 npm run build
 npm run start
 npm run lint
+npm run typecheck
+npm test
 ```
 
-There is no test script configured. For code changes, run `npm run lint` first,
-then `npm run build` when behavior, rendering, types, or dependency surfaces
-change.
+For code changes, run `npm run lint` and `npm run typecheck` first, then
+`npm test` and `npm run build` when behavior, rendering, types, or dependency
+surfaces change.
 
 ## Architecture Notes
 
@@ -66,5 +68,5 @@ change.
   movement. Verify gameplay assumptions with focused inspection and build/lint
   checks.
 - Web Audio startup and cleanup are browser-lifecycle sensitive.
-- No automated tests are configured, so lint/build are the current machine
-  gates.
+- `npm test` covers route security (no API/server actions) and position helpers.
+  Lint, typecheck, test, and build are the CI gates.

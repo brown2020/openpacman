@@ -529,10 +529,11 @@ export const useGameStore = create<GameStoreState>()(
       togglePause: () => set((s) => ({ isPaused: !s.isPaused })),
 
       addScorePopup: (position: Position, points: number) => {
+        const id = `popup-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
         set((s) => ({
           scorePopups: [
             ...s.scorePopups,
-            { position, points, timeRemaining: 1000 },
+            { id, position, points, timeRemaining: 1000 },
           ],
         }));
       },

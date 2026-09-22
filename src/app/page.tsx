@@ -2,13 +2,16 @@
 
 import dynamic from "next/dynamic";
 
-// Dynamic import to avoid SSR issues with game state
 const PacmanGame = dynamic(() => import("@/components/PacmanGame"), {
   ssr: false,
   loading: () => (
-    <div className="min-h-screen flex items-center justify-center bg-black">
+    <div
+      className="min-h-screen flex items-center justify-center bg-black"
+      role="status"
+      aria-live="polite"
+    >
       <div className="text-center">
-        <div 
+        <div
           className="text-4xl font-bold text-yellow-400 mb-4 animate-pulse"
           style={{ fontFamily: "'Press Start 2P', monospace" }}
         >
