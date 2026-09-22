@@ -691,8 +691,25 @@ export const useGameStore = create<GameStoreState>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         highScores: state.highScores,
-        gameState: { highScore: state.gameState.highScore },
+        highScore: state.gameState.highScore,
       }),
+      merge: (persisted, current) => {
+        const p = (persisted ?? {}) as {
+          highScores?: GameStoreState["highScores"];
+          highScore?: number;
+          gameState?: { highScore?: number };
+        };
+        const highScore =
+          p.highScore ?? p.gameState?.highScore ?? current.gameState.highScore;
+        return {
+          ...current,
+          highScores: p.highScores ?? current.highScores,
+          gameState: {
+            ...current.gameState,
+            highScore,
+          },
+        };
+      },
     }
   )
 );

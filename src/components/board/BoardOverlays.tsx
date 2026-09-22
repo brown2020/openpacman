@@ -87,10 +87,10 @@ export const BoardOverlays = memo(function BoardOverlays({
   isReady,
   isPowerMode,
 }: BoardOverlaysProps) {
-  const showReady = isReady && !gameOver && !gameWon;
-  const showPause = isPaused && !gameOver && !gameWon && !isReady;
+  const showPause = isPaused && !gameOver && !gameWon;
+  const showReady = isReady && !gameOver && !gameWon && !isPaused;
   const showEnd = gameOver || gameWon;
-  const showPower = isPowerMode && !gameOver && !gameWon && !isReady;
+  const showPower = isPowerMode && !gameOver && !gameWon && !isReady && !isPaused;
 
   return (
     <>
