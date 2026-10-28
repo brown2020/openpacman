@@ -9,7 +9,6 @@ interface StartScreenProps {
   score: number;
   highScores: GameScore[];
   gameOver: boolean;
-  gameWon: boolean;
 }
 
 // Animated ghost component for the start screen
@@ -17,19 +16,21 @@ const AnimatedGhost: React.FC<{ color: string; delay: number; x: number }> = ({
   color,
   delay,
   x,
-}) => (
-  <div
-    className="absolute"
-    style={{
-      left: `${x}%`,
-      bottom: "20%",
-      animation: `ghost-float 2s ease-in-out infinite ${delay}s`,
-    }}
-  >
+}) => {
+  const gradientId = `startGhost-${color.replace("#", "")}`;
+  return (
+    <div
+      className="absolute"
+      style={{
+        left: `${x}%`,
+        bottom: "20%",
+        animation: `ghost-float 2s ease-in-out infinite ${delay}s`,
+      }}
+    >
     <svg width="40" height="40" viewBox="0 0 24 24">
       <defs>
         <linearGradient
-          id={`startGhost-${color}`}
+          id={gradientId}
           x1="0%"
           y1="0%"
           x2="0%"
@@ -41,15 +42,16 @@ const AnimatedGhost: React.FC<{ color: string; delay: number; x: number }> = ({
       </defs>
       <path
         d="M 0 18 Q 3 24 6 18 Q 9 24 12 18 Q 15 24 18 18 Q 21 24 24 18 L 24 6 Q 24 0 18 0 L 6 0 Q 0 0 0 6 Z"
-        fill={`url(#startGhost-${color})`}
+        fill={`url(#${gradientId})`}
       />
       <ellipse cx="7" cy="8" rx="3" ry="4" fill="white" />
       <ellipse cx="17" cy="8" rx="3" ry="4" fill="white" />
       <circle cx="8" cy="9" r="1.5" fill="#111" />
       <circle cx="18" cy="9" r="1.5" fill="#111" />
     </svg>
-  </div>
-);
+    </div>
+  );
+};
 
 // Generate stars once at module level (not on every render)
 const STARS = Array.from({ length: 50 }, (_, i) => ({
@@ -65,7 +67,6 @@ export const StartScreen: React.FC<StartScreenProps> = ({
   score,
   highScores,
   gameOver,
-  gameWon,
 }) => {
   const formatDate = (timestamp: number) => {
     return new Date(timestamp).toLocaleDateString(undefined, {
@@ -74,20 +75,13 @@ export const StartScreen: React.FC<StartScreenProps> = ({
     });
   };
 
-  const getMessage = () => {
-    if (gameWon) return "🏆 VICTORY! 🏆";
-    if (gameOver) return "GAME OVER";
-    return "READY?";
-  };
+  const getMessage = () => (gameOver ? "GAME OVER" : "READY?");
 
-  const getSubMessage = () => {
-    if (gameWon) return "You conquered all levels!";
-    if (gameOver) return "Better luck next time!";
-    return "Insert coin to play";
-  };
+  const getSubMessage = () =>
+    gameOver ? "Better luck next time!" : "Insert coin to play";
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center arcade-bg text-white p-4 overflow-hidden relative">
+    <div className="min-h-screen flex flex-col items-center justify-center arcade-bg text-white p-4 overflow-x-hidden relative">
       {/* Animated starfield background */}
       {STARS.map((star) => (
         <div
@@ -118,11 +112,7 @@ export const StartScreen: React.FC<StartScreenProps> = ({
           </h1>
           <div
             className={`text-xl md:text-2xl mt-4 tracking-wide ${
-              gameWon
-                ? "text-green-400"
-                : gameOver
-                ? "text-red-400"
-                : "text-blue-400"
+              gameOver ? "text-red-400" : "text-blue-400"
             }`}
           >
             {getMessage()}
@@ -131,7 +121,7 @@ export const StartScreen: React.FC<StartScreenProps> = ({
         </div>
 
         {/* Score Display (after game ends) */}
-        {(gameOver || gameWon) && (
+        {gameOver && (
           <div className="mb-8 text-center">
             <div className="text-sm text-gray-500 uppercase tracking-wider mb-2">
               Your Score
@@ -150,7 +140,7 @@ export const StartScreen: React.FC<StartScreenProps> = ({
                      text-white tracking-wider uppercase font-arcade
                      focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-yellow-400"
         >
-          {gameOver || gameWon ? "Play Again" : "Start Game"}
+          {gameOver ? "Play Again" : "Start Game"}
         </button>
 
         {/* High Scores */}
@@ -176,7 +166,7 @@ export const StartScreen: React.FC<StartScreenProps> = ({
                       className={`
                         ${index === 0 ? "text-yellow-400" : "text-gray-300"}
                         ${
-                          score === highScore.score && (gameOver || gameWon)
+                          score === highScore.score && gameOver
                             ? "bg-blue-900/30"
                             : ""
                         }

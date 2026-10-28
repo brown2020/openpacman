@@ -26,7 +26,6 @@ interface GameBoardProps {
   direction: Direction;
   mouthOpen: boolean;
   gameOver: boolean;
-  gameWon: boolean;
   isPaused: boolean;
   isPowerMode: boolean;
   isReady?: boolean;
@@ -45,7 +44,6 @@ export const GameBoard: React.FC<GameBoardProps> = memo(
     direction,
     mouthOpen,
     gameOver,
-    gameWon,
     isPaused,
     isPowerMode,
     isReady = false,
@@ -105,7 +103,6 @@ export const GameBoard: React.FC<GameBoardProps> = memo(
 
           <BoardOverlays
             gameOver={gameOver}
-            gameWon={gameWon}
             isPaused={isPaused}
             isReady={isReady}
             isPowerMode={isPowerMode}

@@ -4,7 +4,6 @@ import React, { memo } from "react";
 
 interface BoardOverlaysProps {
   gameOver: boolean;
-  gameWon: boolean;
   isPaused: boolean;
   isReady: boolean;
   isPowerMode: boolean;
@@ -37,32 +36,16 @@ const PauseOverlay = memo(function PauseOverlay() {
   );
 });
 
-const EndOverlay = memo(function EndOverlay({
-  gameOver,
-}: {
-  gameOver: boolean;
-}) {
+const EndOverlay = memo(function EndOverlay() {
   return (
-    <div
-      className={`absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-50 ${
-        gameOver ? "game-over-shake" : "level-flash"
-      }`}
-    >
+    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-50 game-over-shake">
       <div
-        className={`text-4xl font-bold mb-4 tracking-wider ${
-          gameOver ? "text-red-500" : "text-green-400"
-        }`}
-        style={{
-          textShadow: gameOver
-            ? "0 0 20px rgba(255, 0, 0, 0.8)"
-            : "0 0 20px rgba(0, 255, 0, 0.8)",
-        }}
+        className="text-4xl font-bold mb-4 tracking-wider text-red-500"
+        style={{ textShadow: "0 0 20px rgba(255, 0, 0, 0.8)" }}
       >
-        {gameOver ? "GAME OVER" : "LEVEL COMPLETE!"}
+        GAME OVER
       </div>
-      <div className="text-xl text-gray-300">
-        {gameOver ? "Press Start to try again" : "Get ready..."}
-      </div>
+      <div className="text-xl text-gray-300">Press Start to try again</div>
     </div>
   );
 });
@@ -82,21 +65,19 @@ const PowerModeOverlay = memo(function PowerModeOverlay() {
 
 export const BoardOverlays = memo(function BoardOverlays({
   gameOver,
-  gameWon,
   isPaused,
   isReady,
   isPowerMode,
 }: BoardOverlaysProps) {
-  const showPause = isPaused && !gameOver && !gameWon;
-  const showReady = isReady && !gameOver && !gameWon && !isPaused;
-  const showEnd = gameOver || gameWon;
-  const showPower = isPowerMode && !gameOver && !gameWon && !isReady && !isPaused;
+  const showPause = isPaused && !gameOver;
+  const showReady = isReady && !gameOver && !isPaused;
+  const showPower = isPowerMode && !gameOver && !isReady && !isPaused;
 
   return (
     <>
       {showReady ? <ReadyOverlay /> : null}
       {showPause ? <PauseOverlay /> : null}
-      {showEnd ? <EndOverlay gameOver={gameOver} /> : null}
+      {gameOver ? <EndOverlay /> : null}
       {showPower ? <PowerModeOverlay /> : null}
     </>
   );

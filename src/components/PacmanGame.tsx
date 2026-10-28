@@ -86,7 +86,6 @@ export const PacmanGame: React.FC = () => {
         score={gameState.score}
         highScores={highScores}
         gameOver={gameState.gameOver}
-        gameWon={gameState.gameWon}
       />
     );
   }
@@ -136,7 +135,6 @@ export const PacmanGame: React.FC = () => {
         direction={direction}
         mouthOpen={mouthOpen}
         gameOver={gameState.gameOver}
-        gameWon={gameState.gameWon}
         isPaused={isPaused}
         isPowerMode={gameState.powerPelletActive}
         isReady={gameState.isReady}
@@ -194,7 +192,7 @@ export const PacmanGame: React.FC = () => {
       {/* Controls hint */}
       <div className="mt-4 flex flex-col items-center gap-2">
         <div className="text-xs text-gray-600">
-          {!gameState.gameOver && !gameState.gameWon ? (
+          {!gameState.gameOver ? (
             <>
               <span className="hidden md:inline">
                 Arrow keys or WASD to move • ESC/P to pause

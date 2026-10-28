@@ -14,6 +14,20 @@ const geistMono = localFont({
   weight: "100 900",
 });
 
+const pressStart = localFont({
+  src: "./fonts/PressStart2P-Regular.ttf",
+  variable: "--font-arcade",
+  weight: "400",
+  display: "swap",
+});
+
+const vt323 = localFont({
+  src: "./fonts/VT323-Regular.ttf",
+  variable: "--font-vt323",
+  weight: "400",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "OpenPacman - Classic Arcade Game",
   description:
@@ -64,7 +78,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black`}
+        className={`${geistSans.variable} ${geistMono.variable} ${pressStart.variable} ${vt323.variable} antialiased bg-black`}
       >
         {children}
       </body>
