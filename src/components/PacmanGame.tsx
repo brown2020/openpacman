@@ -215,19 +215,24 @@ export const PacmanGame: React.FC = () => {
         </button>
       </div>
 
-      {/* Power Mode Indicator */}
-      {gameState.powerPelletActive && (
-        <div
-          className="mt-3 px-4 py-1 rounded-full text-xs font-bold text-white"
-          style={{
-            background: "linear-gradient(90deg, #2121DE 0%, #5555FF 100%)",
-            boxShadow: "0 0 15px rgba(33, 33, 222, 0.6)",
-            animation: "pulse 0.5s ease-in-out infinite",
-          }}
-        >
-          POWER MODE
-        </div>
-      )}
+      {/* Always in the layout so the centered board does not shift when it appears. */}
+      <div
+        className={`mt-3 px-4 py-1 rounded-full text-xs font-bold whitespace-nowrap ${
+          gameState.powerPelletActive ? "visible text-white" : "invisible"
+        }`}
+        style={
+          gameState.powerPelletActive
+            ? {
+                background: "linear-gradient(90deg, #2121DE 0%, #5555FF 100%)",
+                boxShadow: "0 0 15px rgba(33, 33, 222, 0.6)",
+                animation: "pulse 0.5s ease-in-out infinite",
+              }
+            : undefined
+        }
+        aria-hidden={!gameState.powerPelletActive}
+      >
+        POWER MODE
+      </div>
     </div>
   );
 };
