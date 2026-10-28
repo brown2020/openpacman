@@ -11,10 +11,10 @@ import { useSound } from "./useSound";
 import { findAtPosition } from "../utils/position";
 import {
   PACMAN_MOVE_INTERVAL,
-  GHOST_MOVEMENT_INTERVAL,
   MOUTH_ANIMATION_INTERVAL,
   LEVEL_TRANSITION_DELAY,
 } from "../constants/gameConstants";
+import { stepsForElapsed } from "../utils/gameUtils";
 
 
 export const useGameLoop = () => {
@@ -27,6 +27,8 @@ export const useGameLoop = () => {
     (s) => s.gameState.powerPelletActive
   );
   const totalDots = useGameStore((s) => s.gameState.totalDots);
+  const pacmanSpeed = useGameStore((s) => s.levelConfig.pacmanSpeed);
+  const extraLifeSeq = useGameStore((s) => s.extraLifeSeq);
 
   const {
     playSound,
@@ -39,13 +41,25 @@ export const useGameLoop = () => {
   const animationFrameRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(0);
   const pacmanMoveAccumulator = useRef<number>(0);
-  const ghostMoveAccumulator = useRef<number>(0);
   const mouthAnimAccumulator = useRef<number>(0);
+  const pacmanSpeedRef = useRef(pacmanSpeed);
+  const extraLifeSeenRef = useRef(extraLifeSeq);
+  const loopActiveRef = useRef(false);
+  const gameplayRef = useRef(gameplay);
+  const canPlayRef = useRef(canPlay);
+  const actionsRef = useRef(actions);
   const levelTransitionRef = useRef<boolean>(false);
   const levelTransitionTimeoutRef = useRef<number | null>(null);
   const introPlayedRef = useRef<boolean>(false);
   const sirenActiveRef = useRef<boolean>(false);
   const prevPowerModeRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    pacmanSpeedRef.current = pacmanSpeed;
+    gameplayRef.current = gameplay;
+    canPlayRef.current = canPlay;
+    actionsRef.current = actions;
+  }, [pacmanSpeed, gameplay, canPlay, actions]);
 
   const clearLevelTransitionTimeout = useCallback(() => {
     if (levelTransitionTimeoutRef.current !== null) {
@@ -53,6 +67,12 @@ export const useGameLoop = () => {
       levelTransitionTimeoutRef.current = null;
     }
   }, []);
+
+  useEffect(() => {
+    if (extraLifeSeq === extraLifeSeenRef.current) return;
+    extraLifeSeenRef.current = extraLifeSeq;
+    playSound("extraLife");
+  }, [extraLifeSeq, playSound]);
 
   // Handle intro jingle when game starts
   useEffect(() => {
@@ -130,23 +150,33 @@ export const useGameLoop = () => {
 
   const gameLoopRef = useRef<((currentTime: number) => void) | null>(null);
 
+  const scheduleNextFrame = useCallback(() => {
+    if (!loopActiveRef.current) return;
+    animationFrameRef.current = requestAnimationFrame((t) => gameLoopRef.current?.(t));
+  }, []);
+
   const gameLoop = useCallback(
     (currentTime: number) => {
-      const { isTransitioning, isReady } = gameplay;
+      if (!loopActiveRef.current) return;
+
+      const currentGameplay = gameplayRef.current;
+      const currentActions = actionsRef.current;
+      const playingNow = canPlayRef.current;
 
       // During ready screen, only tick for countdown
-      if (isReady && gameplay.isPlaying) {
+      if (currentGameplay.isReady && currentGameplay.isPlaying) {
         const deltaTime = lastTimeRef.current
           ? currentTime - lastTimeRef.current
           : 16;
         lastTimeRef.current = currentTime;
-        actions.tick(Math.min(deltaTime, 100));
-        animationFrameRef.current = requestAnimationFrame((t) => gameLoopRef.current?.(t));
+        currentActions.tick(Math.min(deltaTime, 100));
+        scheduleNextFrame();
         return;
       }
 
-      if (!canPlay || isTransitioning) {
-        animationFrameRef.current = requestAnimationFrame((t) => gameLoopRef.current?.(t));
+      if (!playingNow || currentGameplay.isTransitioning) {
+        lastTimeRef.current = currentTime;
+        scheduleNextFrame();
         return;
       }
 
@@ -156,34 +186,37 @@ export const useGameLoop = () => {
       lastTimeRef.current = currentTime;
       const cappedDelta = Math.min(deltaTime, 100);
 
-      pacmanMoveAccumulator.current += cappedDelta;
-      ghostMoveAccumulator.current += cappedDelta;
       mouthAnimAccumulator.current += cappedDelta;
 
       // Update timers via tick
-      actions.tick(cappedDelta);
+      currentActions.tick(cappedDelta);
 
-      // Move Pacman at fixed intervals
-      if (pacmanMoveAccumulator.current >= PACMAN_MOVE_INTERVAL) {
-        actions.movePacman();
-        pacmanMoveAccumulator.current = 0;
+      // Pac-Man's level speed fills the move accumulator; one tile per frame
+      // so the collision effect still sees every cell.
+      const paced = stepsForElapsed(
+        pacmanMoveAccumulator.current,
+        cappedDelta,
+        pacmanSpeedRef.current,
+        PACMAN_MOVE_INTERVAL,
+        1
+      );
+      pacmanMoveAccumulator.current = paced.accumulator;
+      for (let step = 0; step < paced.steps; step += 1) {
+        currentActions.movePacman();
       }
 
-      // Move ghosts at fixed intervals
-      if (ghostMoveAccumulator.current >= GHOST_MOVEMENT_INTERVAL) {
-        actions.updateGhosts(GHOST_MOVEMENT_INTERVAL);
-        ghostMoveAccumulator.current = 0;
-      }
+      // Ghost speed is applied inside the store from this real-time delta.
+      currentActions.updateGhosts(cappedDelta);
 
       // Animate mouth
       if (mouthAnimAccumulator.current >= MOUTH_ANIMATION_INTERVAL) {
-        actions.toggleMouth();
+        currentActions.toggleMouth();
         mouthAnimAccumulator.current = 0;
       }
 
-      animationFrameRef.current = requestAnimationFrame((t) => gameLoopRef.current?.(t));
+      scheduleNextFrame();
     },
-    [gameplay, actions, canPlay]
+    [scheduleNextFrame]
   );
 
   // Keep ref in sync with latest gameLoop
@@ -257,6 +290,7 @@ export const useGameLoop = () => {
       levelTransitionTimeoutRef.current = window.setTimeout(() => {
         levelTransitionTimeoutRef.current = null;
         levelTransitionRef.current = false;
+        // Authored levels continue via getLevelConfig; there is no terminal victory.
         actions.startGame(level + 1);
       }, LEVEL_TRANSITION_DELAY);
     }
@@ -270,23 +304,33 @@ export const useGameLoop = () => {
     clearLevelTransitionTimeout,
   ]);
 
-  // Start/stop game loop
   useEffect(() => {
-    if (gameplay.isPlaying && !gameplay.gameOver && !gameplay.gameWon) {
-      lastTimeRef.current = 0;
-      pacmanMoveAccumulator.current = 0;
-      ghostMoveAccumulator.current = 0;
-      mouthAnimAccumulator.current = 0;
-      levelTransitionRef.current = false;
-      animationFrameRef.current = requestAnimationFrame(gameLoop);
+    pacmanMoveAccumulator.current = 0;
+    mouthAnimAccumulator.current = 0;
+  }, [gameplay.level, gameplay.isReady]);
+
+  // Run the loop only while a game is active. Pause stops it; scatter/chase
+  // changes do not restart it, so movement accumulators keep their progress.
+  useEffect(() => {
+    const shouldRun =
+      gameplay.isPlaying && !gameplay.gameOver && !gameplay.gameWon && !gameplay.isPaused;
+    if (!shouldRun) {
+      loopActiveRef.current = false;
+      return;
     }
 
+    loopActiveRef.current = true;
+    lastTimeRef.current = 0;
+    animationFrameRef.current = requestAnimationFrame((t) => gameLoopRef.current?.(t));
+
     return () => {
-      if (animationFrameRef.current) {
+      loopActiveRef.current = false;
+      if (animationFrameRef.current !== null) {
         cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
       }
     };
-  }, [gameplay, gameLoop]);
+  }, [gameplay.isPlaying, gameplay.gameOver, gameplay.gameWon, gameplay.isPaused]);
 
   useEffect(() => {
     if (!gameplay.isPlaying || gameplay.gameOver || gameplay.gameWon) {

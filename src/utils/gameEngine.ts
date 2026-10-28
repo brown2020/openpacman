@@ -17,6 +17,8 @@ import {
   CLYDE_CHASE_DISTANCE,
   DIRECTION_DELTAS,
   OPPOSITE_DIRECTION,
+  GHOST_DOT_LIMITS,
+  GLOBAL_DOT_LIMITS,
 } from "../constants/gameConstants";
 import { getNextMoveTowards } from "./pathfinding";
 import {
@@ -26,6 +28,7 @@ import {
   getPositionAhead,
   isInTunnel,
   wrapTunnel,
+  stepsForElapsed,
 } from "./gameUtils";
 import { positionEquals } from "./position";
 
@@ -218,145 +221,257 @@ const getFrightenedDirection = (
   return validDirections[Math.floor(randomIndex) % validDirections.length];
 };
 
+const RELEASE_ORDER = [
+  GHOST_NAMES.PINKY,
+  GHOST_NAMES.INKY,
+  GHOST_NAMES.CLYDE,
+] as const;
+
+/** Brief pause after a ghost is eaten before it can leave the house again. */
+const EATEN_RESPAWN_DELAY = 500;
+
+export interface GhostStepContext {
+  pacmanPos: Position;
+  pacmanDir: Direction;
+  maze: Matrix<CellType>;
+  blinkyPos: Position;
+  gameMode: GameMode;
+  levelConfig: LevelConfig;
+  dotsRemaining: number;
+  powerPelletMs: number;
+  globalDotCounterEnabled: boolean;
+  globalDotCounter: number;
+  interval: number;
+}
+
 /**
- * Update a single ghost's position based on its mode
+ * Dot limit that must be reached before a housed ghost may leave.
+ * After a death the global counter is shared; otherwise each ghost has its own.
  */
-export const updateGhostPosition = (
+export const ghostDotLimit = (
+  name: Ghost["name"],
+  globalDotCounterEnabled: boolean
+): number => {
+  if (name === GHOST_NAMES.BLINKY) return 0;
+  if (globalDotCounterEnabled) {
+    if (name === GHOST_NAMES.PINKY) return GLOBAL_DOT_LIMITS.PINKY;
+    if (name === GHOST_NAMES.INKY) return GLOBAL_DOT_LIMITS.INKY;
+    if (name === GHOST_NAMES.CLYDE) return GLOBAL_DOT_LIMITS.CLYDE;
+    return 0;
+  }
+  return GHOST_DOT_LIMITS[name];
+};
+
+export const isGhostReadyToLeave = (
   ghost: Ghost,
-  pacmanPos: Position,
-  pacmanDir: Direction,
-  maze: Matrix<CellType>,
-  blinkyPos: Position,
-  deltaTime: number,
-  gameMode: GameMode,
-  levelConfig: LevelConfig,
-  dotsRemaining: number
+  globalDotCounterEnabled: boolean,
+  globalDotCounter: number
+): boolean => {
+  if (ghost.mode !== GhostMode.HOUSE) return false;
+  if ((ghost.houseTimeLeft ?? 0) > 0) return false;
+  const limit = ghostDotLimit(ghost.name, globalDotCounterEnabled);
+  if (globalDotCounterEnabled && ghost.name !== GHOST_NAMES.BLINKY) {
+    return globalDotCounter >= limit;
+  }
+  return ghost.dotCounter >= limit;
+};
+
+/**
+ * Give the next housed ghost credit for one eaten dot.
+ * Pinky's limit is 0, so dots start counting toward Inky immediately.
+ * Global mode uses `globalDotCounter` instead of these personal counters.
+ */
+export const countDotTowardRelease = (
+  ghosts: Ghost[],
+  globalDotCounterEnabled: boolean
+): Ghost[] => {
+  if (globalDotCounterEnabled) return ghosts;
+
+  for (const name of RELEASE_ORDER) {
+    const ghost = ghosts.find((candidate) => candidate.name === name && candidate.mode === GhostMode.HOUSE);
+    if (!ghost) continue;
+    if (ghost.dotCounter >= ghostDotLimit(name, false)) continue;
+    return ghosts.map((candidate) =>
+      candidate.name === name
+        ? { ...candidate, dotCounter: candidate.dotCounter + 1 }
+        : candidate
+    );
+  }
+
+  return ghosts;
+};
+
+/**
+ * Frightened time is real time. A value of 0 (or below) ends the mode;
+ * the old `time && time <= 0` check could never succeed.
+ */
+export const decayFrightenedTimer = (
+  ghost: Ghost,
+  deltaMs: number,
+  gameMode: GameMode
 ): Ghost => {
-  // Handle house mode - ghosts waiting to be released
-  if (ghost.mode === GhostMode.HOUSE) {
-    if (ghost.houseTimeLeft && ghost.houseTimeLeft > 0) {
-      return { ...ghost, houseTimeLeft: ghost.houseTimeLeft - deltaTime };
-    }
-    // Exit house - move to exit position
+  if (ghost.mode !== GhostMode.FRIGHTENED) return ghost;
+  const left = Math.max(0, (ghost.frightenedTimeLeft ?? 0) - Math.max(0, deltaMs));
+  if (left <= 0) {
     return {
       ...ghost,
-      mode: GhostMode.CHASE,
-      position: GHOST_HOUSE_EXIT,
-      houseTimeLeft: 0,
+      mode: gameMode === GameMode.CHASE ? GhostMode.CHASE : GhostMode.SCATTER,
+      frightenedTimeLeft: undefined,
+    };
+  }
+  return { ...ghost, frightenedTimeLeft: left };
+};
+
+export const releaseFrightenedGhosts = (
+  ghosts: Ghost[],
+  gameMode: GameMode
+): Ghost[] =>
+  ghosts.map((ghost) =>
+    ghost.mode === GhostMode.FRIGHTENED
+      ? decayFrightenedTimer({ ...ghost, frightenedTimeLeft: 0 }, 0, gameMode)
+      : ghost
+  );
+
+const decayHouseDelay = (ghost: Ghost, deltaMs: number): Ghost => {
+  if (ghost.mode !== GhostMode.HOUSE || !(ghost.houseTimeLeft && ghost.houseTimeLeft > 0)) {
+    return ghost;
+  }
+  return { ...ghost, houseTimeLeft: Math.max(0, ghost.houseTimeLeft - Math.max(0, deltaMs)) };
+};
+
+const leaveHouse = (ghost: Ghost, ctx: GhostStepContext): Ghost => {
+  const frightened = ctx.powerPelletMs > 0;
+  return {
+    ...ghost,
+    previousPosition: ghost.position,
+    position: { ...GHOST_HOUSE_EXIT },
+    mode: frightened
+      ? GhostMode.FRIGHTENED
+      : ctx.gameMode === GameMode.CHASE
+        ? GhostMode.CHASE
+        : GhostMode.SCATTER,
+    frightenedTimeLeft: frightened ? ctx.powerPelletMs : undefined,
+    houseTimeLeft: 0,
+    direction: frightened ? OPPOSITE_DIRECTION[ghost.direction] : ghost.direction,
+  };
+};
+
+/**
+ * Move one tile. Speed is applied by the caller via how often this runs.
+ */
+export const stepGhostOnce = (ghost: Ghost, ctx: GhostStepContext): Ghost => {
+  if (ghost.mode === GhostMode.HOUSE) {
+    if (!isGhostReadyToLeave(ghost, ctx.globalDotCounterEnabled, ctx.globalDotCounter)) {
+      return ghost;
+    }
+    return leaveHouse(ghost, ctx);
+  }
+
+  let mode = ghost.mode;
+  if (mode === GhostMode.CHASE && ctx.gameMode === GameMode.SCATTER) {
+    mode = GhostMode.SCATTER;
+  } else if (mode === GhostMode.SCATTER && ctx.gameMode === GameMode.CHASE) {
+    mode = GhostMode.CHASE;
+  }
+
+  if (mode === GhostMode.EATEN && positionEquals(ghost.position, GHOST_HOUSE_EXIT)) {
+    return {
+      ...ghost,
+      mode: GhostMode.HOUSE,
+      position: { ...GHOST_HOUSE_POSITION },
+      previousPosition: ghost.position,
+      houseTimeLeft: EATEN_RESPAWN_DELAY,
+      frightenedTimeLeft: undefined,
+      moveAccumulator: 0,
     };
   }
 
-  // Determine target based on mode
+  const acting = mode === ghost.mode ? ghost : { ...ghost, mode };
   let target: Position;
-  let newMode: GhostMode = ghost.mode;
-
-  switch (ghost.mode) {
-    case GhostMode.CHASE:
-      target = getGhostChaseTarget(ghost, pacmanPos, pacmanDir, blinkyPos);
-      // Check if game mode says we should scatter
-      if (gameMode === GameMode.SCATTER) {
-        newMode = GhostMode.SCATTER;
-        target = getScatterTarget(ghost);
-      }
-      break;
-
-    case GhostMode.SCATTER:
-      target = getScatterTarget(ghost);
-      // Check if game mode says we should chase
-      if (gameMode === GameMode.CHASE) {
-        newMode = GhostMode.CHASE;
-        target = getGhostChaseTarget(ghost, pacmanPos, pacmanDir, blinkyPos);
-      }
-      break;
-
-    case GhostMode.FRIGHTENED:
-      // Frightened ghosts use random movement
-      target = ghost.position; // Target doesn't matter for frightened
-      if (ghost.frightenedTimeLeft && ghost.frightenedTimeLeft <= 0) {
-        newMode = gameMode === GameMode.CHASE ? GhostMode.CHASE : GhostMode.SCATTER;
-      }
-      break;
-
-    case GhostMode.EATEN:
-      // Head back to ghost house
-      target = GHOST_HOUSE_POSITION;
-      if (positionEquals(ghost.position, GHOST_HOUSE_EXIT)) {
-        return {
-          ...ghost,
-          mode: GhostMode.HOUSE,
-          position: GHOST_HOUSE_POSITION,
-          houseTimeLeft: 500, // Brief delay before re-emerging
-          frightenedTimeLeft: undefined,
-        };
-      }
-      break;
-
-    default:
-      target = pacmanPos;
-  }
-
-  // Get next direction
-  let newDirection: Direction;
-
-  if (ghost.mode === GhostMode.FRIGHTENED) {
-    newDirection = getFrightenedDirection(ghost, maze);
-  } else if (ghost.mode === GhostMode.EATEN) {
-    // Use A* for eaten ghosts to find fastest path home
-    newDirection = getNextMoveTowards(
-      ghost.position,
-      target,
-      maze,
-      ghost.direction
-    );
+  if (acting.mode === GhostMode.CHASE) {
+    target = getGhostChaseTarget(acting, ctx.pacmanPos, ctx.pacmanDir, ctx.blinkyPos);
+  } else if (acting.mode === GhostMode.SCATTER) {
+    target = getScatterTarget(acting);
+  } else if (acting.mode === GhostMode.EATEN) {
+    target = GHOST_HOUSE_POSITION;
   } else {
-    // Use intersection-based targeting for chase/scatter (more authentic)
-    newDirection = getBestDirectionAtIntersection(ghost, target, maze);
+    target = acting.position;
   }
 
-  // Calculate new position
-  const newPosition = getNextPosition(ghost.position, newDirection);
+  let newDirection: Direction;
+  if (acting.mode === GhostMode.FRIGHTENED) {
+    newDirection = getFrightenedDirection(acting, ctx.maze);
+  } else if (acting.mode === GhostMode.EATEN) {
+    newDirection = getNextMoveTowards(acting.position, target, ctx.maze, acting.direction);
+  } else {
+    newDirection = getBestDirectionAtIntersection(acting, target, ctx.maze);
+  }
 
-  // Calculate new frightened time
-  const newFrightenedTime =
-    ghost.mode === GhostMode.FRIGHTENED
-      ? Math.max(0, (ghost.frightenedTimeLeft || 0) - deltaTime)
-      : undefined;
+  const newPosition = getNextPosition(acting.position, newDirection);
 
-  // Update Elroy status for Blinky
-  let elroyLevel = ghost.elroyLevel;
-  let isElroy = ghost.isElroy;
-
-  if (ghost.name === GHOST_NAMES.BLINKY) {
-    if (dotsRemaining <= levelConfig.elroyDotsLeft2) {
+  let elroyLevel = acting.elroyLevel;
+  let isElroy = acting.isElroy;
+  if (acting.name === GHOST_NAMES.BLINKY) {
+    if (ctx.dotsRemaining <= ctx.levelConfig.elroyDotsLeft2) {
       elroyLevel = 2;
       isElroy = true;
-    } else if (dotsRemaining <= levelConfig.elroyDotsLeft1) {
+    } else if (ctx.dotsRemaining <= ctx.levelConfig.elroyDotsLeft1) {
       elroyLevel = 1;
       isElroy = true;
     }
   }
 
-  if (isValidMove(newPosition, maze, true)) {
+  if (isValidMove(newPosition, ctx.maze, true)) {
     return {
-      ...ghost,
-      previousPosition: ghost.position,
+      ...acting,
+      previousPosition: acting.position,
       position: newPosition,
       direction: newDirection,
       targetPosition: target,
-      mode: newMode,
-      frightenedTimeLeft: newFrightenedTime,
+      mode,
       isElroy,
       elroyLevel,
     };
   }
 
   return {
-    ...ghost,
-    mode: newMode,
-    frightenedTimeLeft: newFrightenedTime,
+    ...acting,
+    mode,
+    targetPosition: target,
     isElroy,
     elroyLevel,
   };
+};
+
+/**
+ * Apply real-time timers, then step using speed as a movement multiplier.
+ * At most one tile per call so collision checks can run between steps.
+ */
+export const advanceGhostByTime = (
+  ghost: Ghost,
+  deltaMs: number,
+  speed: number,
+  ctx: GhostStepContext
+): Ghost => {
+  let current = decayHouseDelay(decayFrightenedTimer(ghost, deltaMs, ctx.gameMode), deltaMs);
+  if (
+    current.mode === GhostMode.HOUSE &&
+    !isGhostReadyToLeave(current, ctx.globalDotCounterEnabled, ctx.globalDotCounter)
+  ) {
+    return { ...current, moveAccumulator: 0 };
+  }
+
+  const paced = stepsForElapsed(
+    current.moveAccumulator ?? 0,
+    deltaMs,
+    speed,
+    ctx.interval,
+    1
+  );
+  for (let step = 0; step < paced.steps; step += 1) {
+    current = stepGhostOnce(current, ctx);
+  }
+  return { ...current, moveAccumulator: paced.accumulator };
 };
 
 /**
@@ -377,8 +492,9 @@ export const createInitialGhosts = (): Ghost[] =>
       targetPosition: { ...config.initialPosition },
       direction: DIRECTIONS.LEFT,
       isMoving: false,
-      houseTimeLeft: isOutside ? 0 : config.dotLimit * 50, // Approximation for dot-based release
+      houseTimeLeft: 0,
       dotCounter: 0,
+      moveAccumulator: 0,
       isElroy: false,
       elroyLevel: 0,
     };
@@ -431,22 +547,41 @@ export const reverseGhostDirections = (ghosts: Ghost[]): Ghost[] =>
 /**
  * Check if Pacman collides with any ghost
  */
+const ghostsOverlap = (
+  ghost: Ghost,
+  pacmanPos: Position,
+  pacmanPrevPos?: Position
+): boolean => {
+  if (positionEquals(ghost.position, pacmanPos)) return true;
+  if (!pacmanPrevPos || positionEquals(pacmanPrevPos, pacmanPos)) return false;
+  if (positionEquals(ghost.previousPosition, ghost.position)) return false;
+  return (
+    positionEquals(ghost.position, pacmanPrevPos) &&
+    positionEquals(ghost.previousPosition, pacmanPos)
+  );
+};
+
+/**
+ * Same-cell hits and head-on swaps both count.
+ * A chase ghost on the tile wins over a frightened ghost so the lethal hit is not hidden.
+ */
 export const checkGhostCollision = (
   pacmanPos: Position,
-  ghosts: Ghost[]
+  ghosts: Ghost[],
+  pacmanPrevPos?: Position
 ): { collision: boolean; ghost: Ghost | null; canEat: boolean } => {
+  let edible: Ghost | null = null;
+
   for (const ghost of ghosts) {
-    if (positionEquals(ghost.position, pacmanPos)) {
-      if (ghost.mode === GhostMode.EATEN || ghost.mode === GhostMode.HOUSE) {
-        continue;
-      }
-      return {
-        collision: true,
-        ghost,
-        canEat: ghost.mode === GhostMode.FRIGHTENED,
-      };
+    if (ghost.mode === GhostMode.EATEN || ghost.mode === GhostMode.HOUSE) continue;
+    if (!ghostsOverlap(ghost, pacmanPos, pacmanPrevPos)) continue;
+    if (ghost.mode !== GhostMode.FRIGHTENED) {
+      return { collision: true, ghost, canEat: false };
     }
+    if (!edible) edible = ghost;
   }
+
+  if (edible) return { collision: true, ghost: edible, canEat: true };
   return { collision: false, ghost: null, canEat: false };
 };
 

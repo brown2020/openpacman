@@ -10,20 +10,23 @@ import {
 } from "../utils/gameUtils";
 import {
   createInitialGhosts,
-  updateGhostPosition,
   frightenGhosts,
   eatGhost,
   checkGhostCollision,
   getGhostEatScore,
   reverseGhostDirections,
   getGhostSpeed,
+  advanceGhostByTime,
+  releaseFrightenedGhosts,
+  countDotTowardRelease,
 } from "../utils/gameEngine";
+import { awardScore } from "../utils/score";
+import { mergeHighScorePersist } from "../utils/highScore";
 import { removeAtPosition } from "../utils/position";
 import {
   PACMAN_START_POSITION,
   SCORE_DOT,
   SCORE_POWER_PELLET,
-  SCORE_EXTRA_LIFE_THRESHOLD,
   DIRECTIONS,
   getModeTiming,
   FRUIT_SPAWN_DOT_COUNT_1,
@@ -31,6 +34,7 @@ import {
   FRUIT_VISIBLE_DURATION,
   FRUIT_SPAWN_POSITION,
   READY_SCREEN_DURATION,
+  GHOST_MOVEMENT_INTERVAL,
 } from "../constants/gameConstants";
 import type {
   Direction,
@@ -62,6 +66,7 @@ export interface GameStoreState {
   levelConfig: LevelConfig;
   scorePopups: ScorePopup[];
   wakaAlternate: boolean; // For alternating waka sound
+  extraLifeSeq: number;
 
   // Timing
   lastMoveTime: number;
@@ -160,6 +165,7 @@ export const useGameStore = create<GameStoreState>()(
       levelConfig: getDefaultLevelConfig(),
       scorePopups: [],
       wakaAlternate: false,
+      extraLifeSeq: 0,
       lastMoveTime: 0,
       moveAccumulator: 0,
 
@@ -178,6 +184,7 @@ export const useGameStore = create<GameStoreState>()(
             level,
             score: level === 0 ? 0 : prev.score,
             highScore: prev.highScore,
+            lives: level === 0 ? 3 : prev.lives,
             totalDots: initialDots.length + initialPowerPellets.length,
             // Start in scatter mode
             gameMode: GameMode.SCATTER,
@@ -280,24 +287,28 @@ export const useGameStore = create<GameStoreState>()(
         const blinky = ghosts.find((g) => g.name === "BLINKY");
         const blinkyPos = blinky?.position || pacmanPos;
         const dotsRemaining = dots.length + powerPellets.length;
+        const ctx = {
+          pacmanPos,
+          pacmanDir: direction,
+          maze: layout,
+          blinkyPos,
+          gameMode: gameState.gameMode,
+          levelConfig,
+          dotsRemaining,
+          powerPelletMs: gameState.powerPelletActive ? gameState.powerPelletTimeRemaining : 0,
+          globalDotCounterEnabled: gameState.globalDotCounterEnabled,
+          globalDotCounter: gameState.globalDotCounter,
+          interval: GHOST_MOVEMENT_INTERVAL,
+        };
 
-        const newGhosts = ghosts.map((ghost) => {
-          // Calculate speed-adjusted delta time
-          const ghostSpeed = getGhostSpeed(ghost, levelConfig, dotsRemaining);
-          const adjustedDelta = deltaTime * ghostSpeed;
-
-          return updateGhostPosition(
+        const newGhosts = ghosts.map((ghost) =>
+          advanceGhostByTime(
             ghost,
-            pacmanPos,
-            direction,
-            layout,
-            blinkyPos,
-            adjustedDelta,
-            gameState.gameMode,
-            levelConfig,
-            dotsRemaining
-          );
-        });
+            deltaTime,
+            getGhostSpeed(ghost, levelConfig, dotsRemaining),
+            ctx
+          )
+        );
 
         set({ ghosts: newGhosts });
       },
@@ -334,11 +345,10 @@ export const useGameStore = create<GameStoreState>()(
       },
 
       collectDot: (dotPos: Position) => {
-        const { dots, gameState, levelConfig, wakaAlternate } = get();
+        const { dots, gameState, levelConfig, wakaAlternate, ghosts, extraLifeSeq } = get();
         const remainingDots = removeAtPosition(dots, dotPos);
 
         if (remainingDots.length < dots.length) {
-          const newScore = gameState.score + SCORE_DOT;
           const newDotsEaten = gameState.dotsEaten + 1;
 
           // Check for fruit spawn (at 70 and 170 dots eaten)
@@ -357,62 +367,40 @@ export const useGameStore = create<GameStoreState>()(
             };
           }
 
-          // Check for extra life
-          let newLives = gameState.lives;
-          let extraLifeAwarded = gameState.extraLifeAwarded;
-          if (!extraLifeAwarded && newScore >= SCORE_EXTRA_LIFE_THRESHOLD) {
-            newLives = gameState.lives + 1;
-            extraLifeAwarded = true;
-          }
-
-          // Increment global dot counter
-          const newGlobalDotCounter = gameState.globalDotCounter + 1;
+          const awarded = awardScore(gameState, SCORE_DOT);
 
           set({
             dots: remainingDots,
             wakaAlternate: !wakaAlternate,
+            ghosts: countDotTowardRelease(ghosts, gameState.globalDotCounterEnabled),
+            extraLifeSeq: awarded.extraLife ? extraLifeSeq + 1 : extraLifeSeq,
             gameState: {
-              ...gameState,
-              score: newScore,
+              ...awarded.state,
               dotsEaten: newDotsEaten,
-              highScore: Math.max(gameState.highScore, newScore),
               fruit: newFruit,
-              lives: newLives,
-              extraLifeAwarded,
-              globalDotCounter: newGlobalDotCounter,
+              globalDotCounter: gameState.globalDotCounter + 1,
             },
           });
         }
       },
 
       collectPowerPellet: (pelletPos: Position) => {
-        const { powerPellets, ghosts, gameState, levelConfig } = get();
+        const { powerPellets, ghosts, gameState, levelConfig, extraLifeSeq } = get();
         const remainingPellets = removeAtPosition(powerPellets, pelletPos);
 
         if (remainingPellets.length < powerPellets.length) {
-          const newScore = gameState.score + SCORE_POWER_PELLET;
           const frightenedDuration = levelConfig.frightenedDuration;
-
-          // Check for extra life
-          let newLives = gameState.lives;
-          let extraLifeAwarded = gameState.extraLifeAwarded;
-          if (!extraLifeAwarded && newScore >= SCORE_EXTRA_LIFE_THRESHOLD) {
-            newLives = gameState.lives + 1;
-            extraLifeAwarded = true;
-          }
+          const awarded = awardScore(gameState, SCORE_POWER_PELLET);
 
           set({
             powerPellets: remainingPellets,
             ghosts: frightenGhosts(ghosts, frightenedDuration),
             ghostsEatenInChain: 0,
+            extraLifeSeq: awarded.extraLife ? extraLifeSeq + 1 : extraLifeSeq,
             gameState: {
-              ...gameState,
-              score: newScore,
+              ...awarded.state,
               powerPelletActive: frightenedDuration > 0,
               powerPelletTimeRemaining: frightenedDuration,
-              highScore: Math.max(gameState.highScore, newScore),
-              lives: newLives,
-              extraLifeAwarded,
             },
           });
         }
@@ -429,15 +417,14 @@ export const useGameStore = create<GameStoreState>()(
           pacmanPos.x === fruit.position.x &&
           pacmanPos.y === fruit.position.y
         ) {
-          const newScore = gameState.score + fruit.points;
+          const awarded = awardScore(gameState, fruit.points);
 
           set((s) => ({
+            extraLifeSeq: awarded.extraLife ? s.extraLifeSeq + 1 : s.extraLifeSeq,
             gameState: {
-              ...s.gameState,
-              score: newScore,
-              highScore: Math.max(s.gameState.highScore, newScore),
+              ...awarded.state,
               fruit: null,
-              fruitEaten: [...s.gameState.fruitEaten, fruit.type],
+              fruitEaten: [...awarded.state.fruitEaten, fruit.type],
             },
           }));
 
@@ -450,8 +437,8 @@ export const useGameStore = create<GameStoreState>()(
       },
 
       handleGhostCollision: () => {
-        const { pacmanPos, ghosts, gameState, ghostsEatenInChain } = get();
-        const collision = checkGhostCollision(pacmanPos, ghosts);
+        const { pacmanPos, pacmanPrevPos, ghosts, gameState, ghostsEatenInChain, extraLifeSeq } = get();
+        const collision = checkGhostCollision(pacmanPos, ghosts, pacmanPrevPos);
 
         if (!collision.collision || !collision.ghost) {
           return { died: false, ateGhost: false, score: 0 };
@@ -460,16 +447,15 @@ export const useGameStore = create<GameStoreState>()(
         if (collision.canEat) {
           const score = getGhostEatScore(ghostsEatenInChain);
           const newGhosts = eatGhost(ghosts, collision.ghost);
-          const newScore = gameState.score + score;
+          const awarded = awardScore(gameState, score);
 
           set({
             ghosts: newGhosts,
             ghostsEatenInChain: ghostsEatenInChain + 1,
+            extraLifeSeq: awarded.extraLife ? extraLifeSeq + 1 : extraLifeSeq,
             gameState: {
-              ...gameState,
-              score: newScore,
+              ...awarded.state,
               ghostsEaten: gameState.ghostsEaten + 1,
-              highScore: Math.max(gameState.highScore, newScore),
             },
           });
 
@@ -595,6 +581,7 @@ export const useGameStore = create<GameStoreState>()(
           const remaining = gameState.powerPelletTimeRemaining - deltaTime;
           if (remaining <= 0) {
             set((s) => ({
+              ghosts: releaseFrightenedGhosts(s.ghosts, s.gameState.gameMode),
               gameState: {
                 ...s.gameState,
                 powerPelletActive: false,
@@ -693,23 +680,7 @@ export const useGameStore = create<GameStoreState>()(
         highScores: state.highScores,
         highScore: state.gameState.highScore,
       }),
-      merge: (persisted, current) => {
-        const p = (persisted ?? {}) as {
-          highScores?: GameStoreState["highScores"];
-          highScore?: number;
-          gameState?: { highScore?: number };
-        };
-        const highScore =
-          p.highScore ?? p.gameState?.highScore ?? current.gameState.highScore;
-        return {
-          ...current,
-          highScores: p.highScores ?? current.highScores,
-          gameState: {
-            ...current.gameState,
-            highScore,
-          },
-        };
-      },
+      merge: (persisted, current) => mergeHighScorePersist(persisted, current),
     }
   )
 );

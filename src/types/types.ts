@@ -58,6 +58,7 @@ export interface Ghost {
   dotCounter: number; // For dot-based release from house
   isElroy: boolean; // Blinky's "Cruise Elroy" mode
   elroyLevel: number; // 0 = none, 1 = elroy1, 2 = elroy2
+  moveAccumulator?: number;
 }
 
 // Fruit entity

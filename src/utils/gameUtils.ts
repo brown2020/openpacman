@@ -122,6 +122,35 @@ const getPositionsByCellType = (
   return positions;
 };
 
+/** Upper bound on movement catch-up so one long frame cannot skip tiles. */
+export const MAX_CATCHUP_STEPS = 4;
+
+/**
+ * Turn elapsed time and a speed multiplier into whole tile steps.
+ * Speed scales how fast the accumulator fills; callers should pass real time
+ * for timers separately so a slow ghost does not keep a power pellet longer.
+ */
+export function stepsForElapsed(
+  accumulator: number,
+  deltaMs: number,
+  speed: number,
+  interval: number,
+  maxSteps = MAX_CATCHUP_STEPS
+): { accumulator: number; steps: number } {
+  if (!(speed > 0) || !(interval > 0) || !(deltaMs > 0)) {
+    return { accumulator, steps: 0 };
+  }
+
+  let next = accumulator + deltaMs * speed;
+  let steps = 0;
+  const cap = Math.max(0, maxSteps);
+  while (next >= interval && steps < cap) {
+    next -= interval;
+    steps += 1;
+  }
+  return { accumulator: next, steps };
+}
+
 /**
  * Get all dot positions from a level layout
  */
