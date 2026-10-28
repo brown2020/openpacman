@@ -41,28 +41,24 @@ export class SoundManager {
     }
   }
 
-  private ensureAudioContext(): boolean {
-    if (!this.audioContext) return false;
-
-    if (this.audioContext.state === "suspended") {
-      this.audioContext.resume();
-    }
-
-    return true;
-  }
-
   private withAudioContext(
     fn: (ctx: AudioContext, gain: GainNode) => void
   ): void {
-    if (
-      !this.ensureAudioContext() ||
-      this.isMuted ||
-      !this.audioContext ||
-      !this.masterGain
-    ) {
+    const ctx = this.audioContext;
+    const masterGain = this.masterGain;
+    if (!ctx || !masterGain || this.isMuted) return;
+
+    const run = () => {
+      if (this.isMuted || !this.audioContext || !this.masterGain) return;
+      fn(this.audioContext, this.masterGain);
+    };
+
+    if (ctx.state === "suspended") {
+      void ctx.resume().then(run).catch(() => {});
       return;
     }
-    fn(this.audioContext, this.masterGain);
+
+    run();
   }
 
   public toggleMute(): boolean {
