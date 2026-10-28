@@ -1,17 +1,9 @@
-# Dependencies Verified
+# Dependencies verified
 
-Safe npm dependency updates were applied on 2026-06-20 with `npm audit fix`
-and `npm update`.
+Checked 28 Oct 2026.
 
-Verified commands:
-
-- `npm run lint`
-- `npm run build`
-
-Notes:
-
-- `npm audit --audit-level=low` still reports a nested Next/PostCSS advisory.
-  npm's available fix path is `npm audit fix --force`, which would install
-  `next@9.3.3` as a breaking downgrade, so it is deferred.
-- `npm outdated` only reports `@types/node` 26.0.0 as a major update beyond the
-  current wanted 25.9.4 range.
+- Direct dependencies are at the latest npm release, except TypeScript.
+- Installed: Next.js 16.4.3, React 19.3.1, Zustand 5.0.16, Tailwind CSS 4.3.3, ESLint 10.13.0, TypeScript 6.0.3, `@types/node` 26.6.6.
+- TypeScript 7.0.2 is the registry `latest`, and it was not installed. `eslint-config-next` loads `typescript-eslint`, which rejects TypeScript 7.0. See `roadmap.md`.
+- `npm audit` reports 0 vulnerabilities.
+- `firebase-admin` and `jwks-rsa` are not dependencies. There is no `overrides` entry.

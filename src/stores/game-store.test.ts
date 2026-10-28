@@ -36,6 +36,44 @@ describe("game store rules", () => {
     assert.equal(useGameStore.getState().gameState.lives, 3);
   });
 
+  it("plays the opening of a level: ready, move, dot, then power pellet", async () => {
+    const { useGameStore } = await import("./game-store");
+    const { GhostMode } = await import("../types/types");
+
+    useGameStore.getState().startGame(0);
+    const started = useGameStore.getState();
+    assert.equal(started.gameState.isPlaying, true);
+    assert.equal(started.gameState.isReady, true);
+    assert.equal(started.gameState.score, 0);
+    assert.equal(started.pacmanPos.x, 13);
+    assert.equal(started.pacmanPos.y, 23);
+    assert.ok(started.dots.length > 0);
+    assert.equal(started.powerPellets.length, 4);
+
+    useGameStore.getState().finishReady();
+    assert.equal(useGameStore.getState().gameState.isReady, false);
+
+    const moved = useGameStore.getState().movePacman();
+    assert.equal(moved, true);
+    assert.deepEqual(useGameStore.getState().pacmanPos, { x: 12, y: 23 });
+
+    const dotsBefore = useGameStore.getState().dots.length;
+    useGameStore.getState().collectDot({ x: 12, y: 23 });
+    assert.equal(useGameStore.getState().dots.length, dotsBefore - 1);
+    assert.equal(useGameStore.getState().gameState.score, 10);
+    assert.equal(useGameStore.getState().gameState.powerPelletActive, false);
+
+    useGameStore.getState().collectPowerPellet({ x: 1, y: 23 });
+    const powered = useGameStore.getState();
+    assert.equal(powered.powerPellets.length, 3);
+    assert.equal(powered.gameState.score, 60);
+    assert.equal(powered.gameState.powerPelletActive, true);
+    assert.equal(powered.gameState.powerPelletTimeRemaining, 6000);
+    assert.ok(powered.ghosts.every((ghost) => ghost.mode === GhostMode.FRIGHTENED || ghost.mode === GhostMode.HOUSE || ghost.mode === GhostMode.EATEN));
+    const blinky = powered.ghosts.find((ghost) => ghost.name === "BLINKY");
+    assert.equal(blinky?.mode, GhostMode.FRIGHTENED);
+  });
+
   it("awards an extra life from fruit and from eating a ghost", async () => {
     const { useGameStore } = await import("./game-store");
     const { GhostMode } = await import("../types/types");
