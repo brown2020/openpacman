@@ -122,6 +122,68 @@ describe("game store rules", () => {
     assert.equal(useGameStore.getState().gameState.score, 10100);
   });
 
+  it("pauses the ready countdown and resumes it", async () => {
+    const { useGameStore } = await import("./game-store");
+    useGameStore.getState().startGame(0);
+    const readyTime = useGameStore.getState().gameState.readyTimeRemaining;
+    useGameStore.getState().togglePause();
+    useGameStore.getState().tick(400);
+    assert.equal(useGameStore.getState().isPaused, true);
+    assert.equal(useGameStore.getState().gameState.readyTimeRemaining, readyTime);
+    useGameStore.getState().togglePause();
+    useGameStore.getState().tick(400);
+    assert.equal(useGameStore.getState().isPaused, false);
+    assert.equal(useGameStore.getState().gameState.readyTimeRemaining, readyTime - 400);
+  });
+
+  it("reports a lethal hit, respawns with lives left, and ends the last life", async () => {
+    const { useGameStore } = await import("./game-store");
+    const { GhostMode } = await import("../types/types");
+    const { createInitialGhosts } = await import("../utils/gameEngine");
+    const { PACMAN_START_POSITION } = await import("../constants/gameConstants");
+
+    useGameStore.getState().startGame(0);
+    useGameStore.getState().finishReady();
+    const blinky = createInitialGhosts().find((ghost) => ghost.name === "BLINKY");
+    if (!blinky) throw new Error("missing blinky");
+    useGameStore.setState((state) => ({
+      pacmanPos: { x: 4, y: 4 },
+      pacmanPrevPos: { x: 4, y: 4 },
+      ghosts: [{ ...blinky, position: { x: 4, y: 4 }, mode: GhostMode.CHASE }],
+      gameState: { ...state.gameState, score: 420, lives: 2 },
+    }));
+
+    const hit = useGameStore.getState().handleGhostCollision();
+    assert.equal(hit.died, true);
+    assert.equal(hit.ateGhost, false);
+    assert.equal(useGameStore.getState().gameState.lives, 2);
+
+    useGameStore.getState().updateGameState((prev) => ({ ...prev, lives: prev.lives - 1 }));
+    useGameStore.getState().resetEntitiesAfterDeath();
+    const respawned = useGameStore.getState();
+    assert.equal(respawned.gameState.lives, 1);
+    assert.equal(respawned.gameState.isReady, true);
+    assert.equal(respawned.gameState.readyTimeRemaining, 2000);
+    assert.equal(respawned.gameState.globalDotCounterEnabled, true);
+    assert.deepEqual(respawned.pacmanPos, PACMAN_START_POSITION);
+    assert.equal(respawned.gameState.isPlaying, true);
+    assert.equal(respawned.gameState.gameOver, false);
+
+    useGameStore.setState((state) => ({
+      pacmanPos: { x: 4, y: 4 },
+      pacmanPrevPos: { x: 4, y: 4 },
+      ghosts: [{ ...blinky, position: { x: 4, y: 4 }, mode: GhostMode.CHASE }],
+      gameState: { ...state.gameState, lives: 1, isReady: false },
+    }));
+    assert.equal(useGameStore.getState().handleGhostCollision().died, true);
+    useGameStore.getState().setGameOver();
+    const over = useGameStore.getState();
+    assert.equal(over.gameState.isPlaying, false);
+    assert.equal(over.gameState.gameOver, true);
+    assert.equal(over.highScores[0]?.score, 420);
+    assert.equal(over.highScores[0]?.level, 0);
+  });
+
   it("returns frightened ghosts to scatter when the pellet timer ends", async () => {
     const { useGameStore } = await import("./game-store");
     const { frightenGhosts } = await import("../utils/gameEngine");

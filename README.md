@@ -27,11 +27,11 @@ There is no account system, no game API, and no server-side score storage.
 | Language | TypeScript | 6.0.3 |
 | Styling | Tailwind CSS and `@tailwindcss/postcss` | 4.3.3 |
 | State | Zustand | 5.0.16 |
-| Lint | ESLint and `eslint-config-next` | 10.13.0 / 16.4.3 |
+| Lint | ESLint and `eslint-config-next` | 10.14.0 / 16.4.3 |
 | Tests | Node.js test runner with `tsx` | — |
 | Audio | Web Audio API | — |
 
-Versions are the ones installed from `package.json` as of this maintenance pass. TypeScript stays on 6.0.3: TypeScript 7.0.2 is published, and `typescript-eslint` (pulled in by `eslint-config-next`) does not support 7.0 yet.
+Versions are the ones installed from `package.json` as of this maintenance pass. TypeScript stays on 6.0.3. TypeScript 7.0.2 typechecks this repo, and `typescript-eslint` 8.72.1 (pulled in by `eslint-config-next`) still rejects it before ESLint starts: `typescript-eslint does not support TS 7.0`. Its peer range is `typescript >=4.8.4 <6.1.0`.
 
 No Firebase, Stripe, or AI provider packages are installed.
 
@@ -59,7 +59,7 @@ src/
 
 ### Prerequisites
 
-- Node.js 22 (the version CI uses). Next.js itself allows Node.js 20.9.0 or newer.
+- Node.js 24 (the version CI uses). Next.js itself allows Node.js 20.9.0 or newer.
 - npm
 
 ### Install
@@ -105,7 +105,9 @@ Open [http://localhost:3000](http://localhost:3000). About: [http://localhost:30
 
 ## Testing and CI
 
-CI (`.github/workflows/ci.yml`) runs on push and pull request to `dev` and `main`: `npm ci`, lint, typecheck, test, and build on Node.js 22. No secrets are required.
+CI (`.github/workflows/ci.yml`) runs on push and pull request to `dev` and `main`: `npm ci`, lint, typecheck, test, and build on Node.js 24. No secrets are required.
+
+`package.json` overrides `minimatch` to 11.0.4 for ESLint, `@eslint/config-array`, and `@typescript-eslint/typescript-estree`. That is the patched release for [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249). The minimatch 3.1.5 copies inside `eslint-plugin-import`, `eslint-plugin-jsx-a11y`, and `eslint-plugin-react` stay put: those plugins call the v3 default export as a function, and minimatch 11 does not provide that export.
 
 Tests cover the opening of a level (ready, move, dot, power pellet), lives across level changes, extra-life scoring, frightened timers, ghost release and collisions, high-score persistence, security headers, and the absence of API routes and server actions.
 
