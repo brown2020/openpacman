@@ -22,16 +22,16 @@ There is no account system, no game API, and no server-side score storage.
 
 | Area | Choice | Version |
 | --- | --- | --- |
-| Framework | Next.js (App Router, Turbopack) | 16.4.3 |
+| Framework | Next.js (App Router, Turbopack) | 16.4.5 |
 | UI | React | 19.3.1 |
 | Language | TypeScript | 6.0.3 |
-| Styling | Tailwind CSS and `@tailwindcss/postcss` | 4.3.3 |
+| Styling | Tailwind CSS and `@tailwindcss/postcss` | 4.3.4 |
 | State | Zustand | 5.0.16 |
-| Lint | ESLint and `eslint-config-next` | 10.14.0 / 16.4.3 |
+| Lint | ESLint and `eslint-config-next` | 10.14.0 / 16.4.5 |
 | Tests | Node.js test runner with `tsx` | — |
 | Audio | Web Audio API | — |
 
-Versions are the ones installed from `package.json` as of this maintenance pass. TypeScript stays on 6.0.3. TypeScript 7.0.2 typechecks this repo, and `typescript-eslint` 8.72.1 (pulled in by `eslint-config-next`) still rejects it before ESLint starts: `typescript-eslint does not support TS 7.0`. Its peer range is `typescript >=4.8.4 <6.1.0`.
+Versions are the ones installed from `package.json` as of this maintenance pass. TypeScript stays on 6.0.3 because TypeScript 7.0 has no compiler API. `@types/node` stays on 24.19.2 so the types match the Node.js 24 runtime. The registry latest for `@types/node` is 26.6.6.
 
 No Firebase, Stripe, or AI provider packages are installed.
 

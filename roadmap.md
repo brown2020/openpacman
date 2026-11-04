@@ -1,10 +1,10 @@
 # OpenPacman roadmap
 
-Punchlist as of 2 Nov 2026. GitHub has no open issues and no open pull requests.
+Punchlist as of 4 Nov 2026. GitHub has no open issues and no open pull requests.
 
 ## Next
 
-1. Move to TypeScript 7.1 or newer once `typescript-eslint` accepts it. Checked again on 2 Nov 2026: `tsc` from TypeScript 7.0.2 typechecks this repo, then ESLint 10.14.0 fails immediately under `typescript-eslint` 8.72.1 with `typescript-eslint does not support TS 7.0`. The peer range is still `typescript >=4.8.4 <6.1.0`. Tracking note: [typescript-eslint#10940](https://github.com/typescript-eslint/typescript-eslint/issues/10940). The supported side-by-side alias (`typescript` → `@typescript/typescript6@6.0.2`, plus `@typescript/native` aliased to TypeScript 7) was not adopted. It would typecheck with two compilers and pin the API package behind the 6.0.3 already in use.
+1. Move to TypeScript 7.1 or newer once it ships a compiler API and `typescript-eslint` accepts it. TypeScript stays on 6.0.3. TypeScript 7.0.2 is the registry `latest`, and 7.0 does not ship a compiler API. Tracking note: [typescript-eslint#10940](https://github.com/typescript-eslint/typescript-eslint/issues/10940). `@types/node` stays on 24.19.2 to match the Node.js 24 runtime. `@types/node` 26.6.6 is newer and is not installed.
 2. Add a browser test for the animation loop: start, leave ready, eat a nearby dot, eat a power pellet, and confirm the board position does not change when the POWER MODE badge appears.
 3. Give later levels their own maze layouts. All 13 configs reuse `CLASSIC_MAZE`.
 4. Tighten Content-Security-Policy script-src. Production still allows `'unsafe-inline'` so the Next client runtime can start.
